@@ -81,17 +81,7 @@ struct SidebarView: View {
             }
         }
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            for provider in providers {
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url else { return }
-                    var isDir: ObjCBool = false
-                    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
-                          isDir.boolValue else { return }
-                    DispatchQueue.main.async {
-                        viewModel.addFolderByURL(url)
-                    }
-                }
-            }
+            handleDrop(providers: providers)
             return true
         }
         .alert("フォルダを削除", isPresented: Binding(
@@ -110,6 +100,22 @@ struct SidebarView: View {
         } message: {
             if let url = folderToRemove {
                 Text("「\(url.lastPathComponent)」をサイドバーから削除しますか？\nファイルは削除されません。")
+            }
+        }
+    }
+
+    private func handleDrop(providers: [NSItemProvider]) {
+        for provider in providers {
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
+                guard let data = data as? Data,
+                      let urlString = String(data: data, encoding: .utf8),
+                      let url = URL(string: urlString) else { return }
+                var isDir: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
+                      isDir.boolValue else { return }
+                DispatchQueue.main.async {
+                    viewModel.addFolderByURL(url)
+                }
             }
         }
     }

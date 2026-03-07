@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @State private var appState = AppState()
@@ -57,6 +58,23 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for provider in providers {
+                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
+                    guard let data = data as? Data,
+                          let urlString = String(data: data, encoding: .utf8),
+                          let url = URL(string: urlString) else { return }
+                    var isDir: ObjCBool = false
+                    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
+                          isDir.boolValue else { return }
+                    DispatchQueue.main.async {
+                        initSidebarVM()
+                        sidebarVM?.addFolderByURL(url)
+                    }
+                }
+            }
+            return true
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in
             if sidebarVM != nil {

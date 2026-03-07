@@ -14,7 +14,8 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .addFolder, object: nil)
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
-
+            }
+            CommandGroup(replacing: .printItem) {
                 Button("クイックオープン") {
                     NotificationCenter.default.post(name: .quickOpen, object: nil)
                 }
