@@ -6,10 +6,12 @@ final class SidebarViewModel {
     var rootNodes: [FileNode] = []
 
     private let appState: AppState
+    private let fileWatcher = FileWatcher()
 
     init(appState: AppState) {
         self.appState = appState
         loadAllFolders()
+        startWatching()
     }
 
     func addFolder() {
@@ -33,11 +35,13 @@ final class SidebarViewModel {
                 appState.selectFile(firstFile)
             }
         }
+        startWatching()
     }
 
     func removeFolder(at url: URL) {
         rootNodes.removeAll { $0.url.path == url.path }
         appState.removeFolder(url)
+        startWatching()
     }
 
     func refreshAllFolders() {
@@ -60,6 +64,13 @@ final class SidebarViewModel {
     private func loadAllFolders() {
         rootNodes = appState.registeredFolderURLs.compactMap { url in
             FileSystemService.scanDirectory(at: url)
+        }
+    }
+
+    private func startWatching() {
+        let urls = appState.registeredFolderURLs
+        fileWatcher.start(paths: urls) { [weak self] _ in
+            self?.refreshAllFolders()
         }
     }
 }

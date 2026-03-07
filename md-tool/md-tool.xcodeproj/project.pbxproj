@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3ADD46242F5C6AB800ABBED1 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 3ADD45A02F5C700000ABBED1 /* Markdown */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3ADD45792F5C655F00ABBED1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3ADD46242F5C6AB800ABBED1 /* Markdown in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,7 +202,7 @@
 			mainGroup = 3ADD45622F5C655E00ABBED1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				3ADD45952F5C66F900ABBED1 /* XCLocalSwiftPackageReference "../../../Downloads/swift-markdown-main" */,
+				3ADD45952F5C66F900ABBED1 /* XCRemoteSwiftPackageReference "swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3ADD456C2F5C655E00ABBED1 /* Products */;
