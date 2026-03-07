@@ -8,10 +8,17 @@ final class SidebarViewModel {
     private let appState: AppState
     private let fileWatcher = FileWatcher()
 
+    private var exclusionObserver: Any?
+
     init(appState: AppState) {
         self.appState = appState
         loadAllFolders()
         startWatching()
+        exclusionObserver = NotificationCenter.default.addObserver(
+            forName: .exclusionSettingsChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.refreshAllFolders()
+        }
     }
 
     func addFolder() {

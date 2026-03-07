@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var sidebarVM: SidebarViewModel?
     @State private var previewVM = PreviewViewModel()
     @State private var showQuickOpen = false
+    @State private var showSearch = false
 
     var body: some View {
         NavigationSplitView {
@@ -59,6 +60,27 @@ struct ContentView: View {
                 }
             }
         }
+        .overlay {
+            if showSearch, let vm = sidebarVM {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .onTapGesture { showSearch = false }
+                    VStack {
+                        SearchView(
+                            files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
+                            onSelect: { url in
+                                appState.selectFile(url)
+                                previewVM.loadFile(at: url)
+                            },
+                            onDismiss: { showSearch = false }
+                        )
+                        .padding(.top, 80)
+                        Spacer()
+                    }
+                }
+            }
+        }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for provider in providers {
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
@@ -78,7 +100,14 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in
             if sidebarVM != nil {
+                showSearch = false
                 showQuickOpen.toggle()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .fullTextSearch)) { _ in
+            if sidebarVM != nil {
+                showQuickOpen = false
+                showSearch.toggle()
             }
         }
         .onAppear {

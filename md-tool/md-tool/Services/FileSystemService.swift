@@ -2,9 +2,9 @@ import Foundation
 
 struct FileSystemService {
     private static let markdownExtensions: Set<String> = ["md", "markdown"]
-    private static let excludedDirectories: Set<String> = ["node_modules", ".git", ".svn", ".hg"]
 
-    static func scanDirectory(at url: URL) -> FileNode? {
+    static func scanDirectory(at url: URL, excludedDirectories: Set<String>? = nil) -> FileNode? {
+        let excluded = excludedDirectories ?? ExclusionSettings.patternSet
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(
             at: url,
@@ -19,8 +19,8 @@ struct FileSystemService {
             let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
 
             if isDir {
-                if excludedDirectories.contains(name) { continue }
-                if let childNode = scanDirectory(at: itemURL) {
+                if excluded.contains(name) { continue }
+                if let childNode = scanDirectory(at: itemURL, excludedDirectories: excluded) {
                     children.append(childNode)
                 }
             } else {

@@ -20,7 +20,16 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .quickOpen, object: nil)
                 }
                 .keyboardShortcut("p", modifiers: .command)
+
+                Button("全文検索") {
+                    NotificationCenter.default.post(name: .fullTextSearch, object: nil)
+                }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
             }
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }
@@ -28,4 +37,5 @@ struct md_toolApp: App {
 extension Notification.Name {
     static let addFolder = Notification.Name("addFolder")
     static let quickOpen = Notification.Name("quickOpen")
+    static let fullTextSearch = Notification.Name("fullTextSearch")
 }
