@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /Users/susumu/Develop/md-tool/md-tool && xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | tail -50)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | tail -60)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | grep -E \"\\(error:|warning:|BUILD|FAILED\\)\" | head -20)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test 2>&1 | grep -E \"\\(Test |error:|BUILD|FAILED|Executed|passed|failed\\)\" | head -30)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E \"\\(Test |error:|BUILD|FAILED|passed|failed|◇|✔|✘\\)\" | head -40)"
+    ]
+  }
+}
