@@ -5,6 +5,8 @@ struct ContentView: View {
     @State private var appState = AppState()
     @State private var sidebarVM: SidebarViewModel?
     @State private var previewVM = PreviewViewModel()
+    @State private var editorVM = EditorViewModel()
+    @State private var isEditing = false
     @State private var showQuickOpen = false
     @State private var showSearch = false
     @State private var showTOC = UserDefaults.standard.object(forKey: "showTOC") as? Bool ?? true
@@ -16,8 +18,7 @@ struct ContentView: View {
                     viewModel: vm,
                     selectedFileURL: appState.selectedFileURL,
                     onSelect: { url in
-                        appState.selectFile(url)
-                        previewVM.loadFile(at: url)
+                        selectFile(url)
                     }
                 )
             } else {
@@ -28,15 +29,21 @@ struct ContentView: View {
             }
         } detail: {
             if let fileURL = appState.selectedFileURL {
-                PreviewView(
-                    htmlContent: previewVM.htmlContent,
-                    baseURL: fileURL.deletingLastPathComponent(),
-                    showTOC: showTOC,
-                    onInternalLink: { url in
-                        appState.selectFile(url)
-                        previewVM.loadFile(at: url)
-                    }
-                )
+                if isEditing {
+                    EditorView(
+                        text: $editorVM.text,
+                        onTextChange: { editorVM.textDidChange($0) }
+                    )
+                } else {
+                    PreviewView(
+                        htmlContent: previewVM.htmlContent,
+                        baseURL: fileURL.deletingLastPathComponent(),
+                        showTOC: showTOC,
+                        onInternalLink: { url in
+                            selectFile(url)
+                        }
+                    )
+                }
             } else if !appState.registeredFolderURLs.isEmpty {
                 Text("Markdownファイルを選択してください")
                     .foregroundStyle(.secondary)
@@ -58,8 +65,7 @@ struct ContentView: View {
                         QuickOpenView(
                             files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
                             onSelect: { url in
-                                appState.selectFile(url)
-                                previewVM.loadFile(at: url)
+                                selectFile(url)
                             },
                             onDismiss: { showQuickOpen = false }
                         )
@@ -79,8 +85,7 @@ struct ContentView: View {
                         SearchView(
                             files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
                             onSelect: { url in
-                                appState.selectFile(url)
-                                previewVM.loadFile(at: url)
+                                selectFile(url)
                             },
                             onDismiss: { showSearch = false }
                         )
@@ -123,6 +128,21 @@ struct ContentView: View {
             showTOC.toggle()
             UserDefaults.standard.set(showTOC, forKey: "showTOC")
         }
+        .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
+            if isEditing {
+                editorVM.saveImmediately()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleEditMode)) { _ in
+            guard appState.selectedFileURL != nil else { return }
+            if isEditing {
+                editorVM.saveImmediately()
+                previewVM.loadFile(at: appState.selectedFileURL)
+            } else {
+                editorVM.loadFile(at: appState.selectedFileURL)
+            }
+            isEditing.toggle()
+        }
         .onAppear {
             if !appState.registeredFolderURLs.isEmpty {
                 initSidebarVM()
@@ -130,11 +150,19 @@ struct ContentView: View {
                     previewVM.loadFile(at: url)
                 } else if let firstRoot = sidebarVM?.rootNodes.first,
                           let first = FileSystemService.findFirstMarkdownFile(in: firstRoot) {
-                    appState.selectFile(first)
-                    previewVM.loadFile(at: first)
+                    selectFile(first)
                 }
             }
         }
+    }
+
+    private func selectFile(_ url: URL) {
+        if isEditing {
+            editorVM.saveImmediately()
+            editorVM.loadFile(at: url)
+        }
+        appState.selectFile(url)
+        previewVM.loadFile(at: url)
     }
 
     private func initSidebarVM() {

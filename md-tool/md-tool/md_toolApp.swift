@@ -15,6 +15,12 @@ struct md_toolApp: App {
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
             }
+            CommandGroup(replacing: .saveItem) {
+                Button("保存") {
+                    NotificationCenter.default.post(name: .saveFile, object: nil)
+                }
+                .keyboardShortcut("s", modifiers: .command)
+            }
             CommandGroup(replacing: .printItem) {
                 Button("クイックオープン") {
                     NotificationCenter.default.post(name: .quickOpen, object: nil)
@@ -27,10 +33,13 @@ struct md_toolApp: App {
                 .keyboardShortcut("f", modifiers: [.command, .shift])
             }
             CommandGroup(after: .toolbar) {
-                Button {
+                Button("編集モード切替") {
+                    NotificationCenter.default.post(name: .toggleEditMode, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: .command)
+
+                Button("目次を表示") {
                     NotificationCenter.default.post(name: .toggleTOC, object: nil)
-                } label: {
-                    Text("目次を表示")
                 }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
             }
@@ -47,4 +56,6 @@ extension Notification.Name {
     static let quickOpen = Notification.Name("quickOpen")
     static let fullTextSearch = Notification.Name("fullTextSearch")
     static let toggleTOC = Notification.Name("toggleTOC")
+    static let toggleEditMode = Notification.Name("toggleEditMode")
+    static let saveFile = Notification.Name("saveFile")
 }
