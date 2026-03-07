@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var viewMode: ViewMode = .preview
     @State private var showQuickOpen = false
     @State private var showSearch = false
+    @State private var showIndex = false
     @State private var showTOC = UserDefaults.standard.object(forKey: "showTOC") as? Bool ?? true
     @State private var previewTheme = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
 
@@ -65,38 +66,9 @@ struct ContentView: View {
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial)
                 }
-                switch viewMode {
-                case .preview:
-                    PreviewView(
-                        htmlContent: previewVM.htmlContent,
-                        baseURL: fileURL.deletingLastPathComponent(),
-                        showTOC: showTOC,
-                        theme: previewTheme,
-                        onInternalLink: { url in
-                            selectFile(url)
-                        }
-                    )
-                case .edit:
-                    if editorVM.fileTooLarge {
-                        Text("ファイルサイズが10MBを超えています。編集できません。")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        EditorView(
-                            text: $editorVM.text,
-                            onTextChange: { editorVM.textDidChange($0) }
-                        )
-                    }
-                case .split:
-                    HSplitView {
-                        EditorView(
-                            text: $editorVM.text,
-                            onTextChange: { newText in
-                                editorVM.textDidChange(newText)
-                                previewVM.renderFromText(newText, baseURL: fileURL.deletingLastPathComponent())
-                            }
-                        )
-                        .frame(minWidth: 300)
+                Group {
+                    switch viewMode {
+                    case .preview:
                         PreviewView(
                             htmlContent: previewVM.htmlContent,
                             baseURL: fileURL.deletingLastPathComponent(),
@@ -106,9 +78,41 @@ struct ContentView: View {
                                 selectFile(url)
                             }
                         )
-                        .frame(minWidth: 300)
+                    case .edit:
+                        if editorVM.fileTooLarge {
+                            Text("ファイルサイズが10MBを超えています。編集できません。")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            EditorView(
+                                text: $editorVM.text,
+                                onTextChange: { editorVM.textDidChange($0) }
+                            )
+                        }
+                    case .split:
+                        HSplitView {
+                            EditorView(
+                                text: $editorVM.text,
+                                onTextChange: { newText in
+                                    editorVM.textDidChange(newText)
+                                    previewVM.renderFromText(newText, baseURL: fileURL.deletingLastPathComponent())
+                                }
+                            )
+                            .frame(minWidth: 300)
+                            PreviewView(
+                                htmlContent: previewVM.htmlContent,
+                                baseURL: fileURL.deletingLastPathComponent(),
+                                showTOC: showTOC,
+                                theme: previewTheme,
+                                onInternalLink: { url in
+                                    selectFile(url)
+                                }
+                            )
+                            .frame(minWidth: 300)
+                        }
                     }
                 }
+                .transition(.opacity)
                 } // VStack
             } else if !appState.registeredFolderURLs.isEmpty {
                 Text("Markdownファイルを選択してください")
@@ -127,19 +131,24 @@ struct ContentView: View {
                 ZStack {
                     Color.black.opacity(0.2)
                         .ignoresSafeArea()
-                        .onTapGesture { showQuickOpen = false }
+                        .onTapGesture {
+                            withAnimation(.easeOut(duration: 0.15)) { showQuickOpen = false }
+                        }
                     VStack {
                         QuickOpenView(
                             files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
                             onSelect: { url in
                                 selectFile(url)
                             },
-                            onDismiss: { showQuickOpen = false }
+                            onDismiss: {
+                                withAnimation(.easeOut(duration: 0.15)) { showQuickOpen = false }
+                            }
                         )
                         .padding(.top, 80)
                         Spacer()
                     }
                 }
+                .transition(.opacity)
             }
         }
         .overlay {
@@ -147,19 +156,49 @@ struct ContentView: View {
                 ZStack {
                     Color.black.opacity(0.2)
                         .ignoresSafeArea()
-                        .onTapGesture { showSearch = false }
+                        .onTapGesture {
+                            withAnimation(.easeOut(duration: 0.15)) { showSearch = false }
+                        }
                     VStack {
                         SearchView(
                             files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
                             onSelect: { url in
                                 selectFile(url)
                             },
-                            onDismiss: { showSearch = false }
+                            onDismiss: {
+                                withAnimation(.easeOut(duration: 0.15)) { showSearch = false }
+                            }
                         )
                         .padding(.top, 80)
                         Spacer()
                     }
                 }
+                .transition(.opacity)
+            }
+        }
+        .overlay {
+            if showIndex, let vm = sidebarVM {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeOut(duration: 0.15)) { showIndex = false }
+                        }
+                    VStack {
+                        IndexView(
+                            files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
+                            onSelect: { url in
+                                selectFile(url)
+                            },
+                            onDismiss: {
+                                withAnimation(.easeOut(duration: 0.15)) { showIndex = false }
+                            }
+                        )
+                        .padding(.top, 80)
+                        Spacer()
+                    }
+                }
+                .transition(.opacity)
             }
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -181,21 +220,38 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in
             if sidebarVM != nil {
-                showSearch = false
-                showQuickOpen.toggle()
+                withAnimation(.easeOut(duration: 0.15)) {
+                    showSearch = false
+                    showIndex = false
+                    showQuickOpen.toggle()
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .fullTextSearch)) { _ in
             if sidebarVM != nil {
-                showQuickOpen = false
-                showSearch.toggle()
+                withAnimation(.easeOut(duration: 0.15)) {
+                    showQuickOpen = false
+                    showIndex = false
+                    showSearch.toggle()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showIndex)) { _ in
+            if sidebarVM != nil {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    showQuickOpen = false
+                    showSearch = false
+                    showIndex.toggle()
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .themeChanged)) { _ in
             previewTheme = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleTOC)) { _ in
-            showTOC.toggle()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showTOC.toggle()
+            }
             UserDefaults.standard.set(showTOC, forKey: "showTOC")
         }
         .onReceive(NotificationCenter.default.publisher(for: .saveFile)) { _ in
@@ -205,33 +261,37 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleEditMode)) { _ in
             guard appState.selectedFileURL != nil else { return }
-            switch viewMode {
-            case .preview:
-                editorVM.loadFile(at: appState.selectedFileURL)
-                viewMode = .edit
-            case .edit:
-                editorVM.saveImmediately()
-                previewVM.loadFile(at: appState.selectedFileURL)
-                viewMode = .preview
-            case .split:
-                editorVM.saveImmediately()
-                previewVM.loadFile(at: appState.selectedFileURL)
-                viewMode = .preview
+            withAnimation(.easeInOut(duration: 0.2)) {
+                switch viewMode {
+                case .preview:
+                    editorVM.loadFile(at: appState.selectedFileURL)
+                    viewMode = .edit
+                case .edit:
+                    editorVM.saveImmediately()
+                    previewVM.loadFile(at: appState.selectedFileURL)
+                    viewMode = .preview
+                case .split:
+                    editorVM.saveImmediately()
+                    previewVM.loadFile(at: appState.selectedFileURL)
+                    viewMode = .preview
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleSplitMode)) { _ in
             guard appState.selectedFileURL != nil else { return }
-            if viewMode == .split {
-                editorVM.saveImmediately()
-                previewVM.loadFile(at: appState.selectedFileURL)
-                viewMode = .preview
-            } else {
-                if viewMode == .edit {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if viewMode == .split {
                     editorVM.saveImmediately()
+                    previewVM.loadFile(at: appState.selectedFileURL)
+                    viewMode = .preview
+                } else {
+                    if viewMode == .edit {
+                        editorVM.saveImmediately()
+                    }
+                    editorVM.loadFile(at: appState.selectedFileURL)
+                    previewVM.loadFile(at: appState.selectedFileURL)
+                    viewMode = .split
                 }
-                editorVM.loadFile(at: appState.selectedFileURL)
-                previewVM.loadFile(at: appState.selectedFileURL)
-                viewMode = .split
             }
         }
         .alert("ファイルが外部で変更されました", isPresented: Binding(

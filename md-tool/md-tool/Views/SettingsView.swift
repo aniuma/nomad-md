@@ -1,9 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @State private var patterns: [String] = ExclusionSettings.patterns
     @State private var newPattern = ""
     @State private var selectedTheme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
+    @State private var customCSSPath: String = UserDefaults.standard.string(forKey: "customCSSPath") ?? ""
 
     var body: some View {
         Form {
@@ -21,6 +23,38 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("プレビューテーマ")
+            }
+
+            Section {
+                HStack {
+                    TextField("CSSファイルパス", text: $customCSSPath)
+                        .textFieldStyle(.roundedBorder)
+                    Button("選択...") {
+                        let panel = NSOpenPanel()
+                        panel.allowedContentTypes = [.init(filenameExtension: "css")!]
+                        panel.canChooseFiles = true
+                        panel.canChooseDirectories = false
+                        if panel.runModal() == .OK, let url = panel.url {
+                            customCSSPath = url.path
+                        }
+                    }
+                }
+                .onChange(of: customCSSPath) { _, newValue in
+                    UserDefaults.standard.set(newValue, forKey: "customCSSPath")
+                    NotificationCenter.default.post(name: .themeChanged, object: nil)
+                }
+
+                if !customCSSPath.isEmpty {
+                    Button("カスタムCSSをクリア") {
+                        customCSSPath = ""
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("カスタムCSS")
+            } footer: {
+                Text("CSSファイルを指定すると、選択テーマの後に追加で適用されます。")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -66,7 +100,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 430)
+        .frame(width: 450, height: 530)
     }
 
     private func addPattern() {

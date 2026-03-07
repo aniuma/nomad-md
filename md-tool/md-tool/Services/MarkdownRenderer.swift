@@ -29,6 +29,12 @@ struct MarkdownRenderer {
             html += renderFootnoteSection(footnotes)
         }
 
+        // Heading level warnings
+        let warnings = detectHeadingLevelWarnings(generator.headings)
+        if !warnings.isEmpty {
+            html = renderHeadingWarnings(warnings) + html
+        }
+
         if generator.headings.isEmpty {
             return html
         }
@@ -109,6 +115,27 @@ struct MarkdownRenderer {
         }
 
         html += "</nav>\n"
+        return html
+    }
+    private func detectHeadingLevelWarnings(_ headings: [HeadingInfo]) -> [String] {
+        var warnings: [String] = []
+        var prevLevel = 0
+        for heading in headings {
+            if prevLevel > 0 && heading.level > prevLevel + 1 {
+                warnings.append("「\(heading.text)」(h\(heading.level)) が h\(prevLevel) の後にあります（h\(prevLevel + 1) がスキップされています）")
+            }
+            prevLevel = heading.level
+        }
+        return warnings
+    }
+
+    private func renderHeadingWarnings(_ warnings: [String]) -> String {
+        var html = "<div class=\"heading-warnings\">"
+        html += "<details><summary>見出しレベル警告 (\(warnings.count)件)</summary><ul>"
+        for w in warnings {
+            html += "<li>\(w)</li>"
+        }
+        html += "</ul></details></div>\n"
         return html
     }
 }
@@ -249,7 +276,26 @@ struct HTMLGenerator: MarkupWalker {
 
     mutating func visitLink(_ link: Markdown.Link) -> () {
         let dest = link.destination ?? ""
-        html += "<a href=\"\(dest)\">"
+        var cssClass = ""
+
+        // Check for broken relative .md links
+        if let baseURL = baseURL,
+           !dest.isEmpty,
+           !dest.hasPrefix("http://"),
+           !dest.hasPrefix("https://"),
+           !dest.hasPrefix("#"),
+           !dest.hasPrefix("mailto:") {
+            let cleanDest = dest.components(separatedBy: "#").first ?? dest
+            let ext = (cleanDest as NSString).pathExtension.lowercased()
+            if ext == "md" || ext == "markdown" {
+                let resolved = baseURL.appendingPathComponent(cleanDest).standardized
+                if !FileManager.default.fileExists(atPath: resolved.path) {
+                    cssClass = " class=\"broken-link\""
+                }
+            }
+        }
+
+        html += "<a href=\"\(dest)\"\(cssClass)>"
         descendInto(link)
         html += "</a>"
     }

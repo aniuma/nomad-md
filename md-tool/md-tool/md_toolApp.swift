@@ -31,6 +31,11 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .fullTextSearch, object: nil)
                 }
                 .keyboardShortcut("f", modifiers: [.command, .shift])
+
+                Button("索引") {
+                    NotificationCenter.default.post(name: .showIndex, object: nil)
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandGroup(after: .toolbar) {
                 Button("編集モード切替") {
@@ -65,4 +70,5 @@ extension Notification.Name {
     static let saveFile = Notification.Name("saveFile")
     static let toggleSplitMode = Notification.Name("toggleSplitMode")
     static let themeChanged = Notification.Name("themeChanged")
+    static let showIndex = Notification.Name("showIndex")
 }

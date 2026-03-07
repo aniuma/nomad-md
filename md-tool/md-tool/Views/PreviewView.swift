@@ -11,6 +11,7 @@ struct PreviewView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        config.userContentController.add(context.coordinator, name: "copySection")
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
@@ -38,6 +39,7 @@ struct PreviewView: NSViewRepresentable {
         <style>
         \(Self.themeCSS(theme))
         \(Self.layoutCSS)
+        \(Self.customCSS)
         </style>
         </head>
         <body class="\(showTOC ? "" : "toc-hidden")">
@@ -416,12 +418,148 @@ struct PreviewView: NSViewRepresentable {
         text-decoration: none;
         margin-left: 0.3em;
     }
+
+    .heading-warnings {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 1em;
+        font-size: 0.85em;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .heading-warnings {
+            background: #3d3200;
+            border-color: #665500;
+        }
+    }
+
+    .heading-warnings summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: #856404;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .heading-warnings summary { color: #ffc107; }
+    }
+
+    .heading-warnings ul {
+        margin-top: 6px;
+        padding-left: 1.5em;
+        list-style: disc;
+    }
+
+    .heading-warnings li {
+        margin-bottom: 2px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        position: relative;
+    }
+
+    .section-copy-btn {
+        opacity: 0;
+        transition: opacity 0.2s, transform 0.15s;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: 6px;
+        vertical-align: middle;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        color: var(--text);
+    }
+
+    .section-copy-btn svg {
+        width: 14px;
+        height: 14px;
+        opacity: 0.35;
+        transition: opacity 0.15s;
+    }
+
+    h1:hover .section-copy-btn,
+    h2:hover .section-copy-btn,
+    h3:hover .section-copy-btn,
+    h4:hover .section-copy-btn,
+    h5:hover .section-copy-btn,
+    h6:hover .section-copy-btn {
+        opacity: 1;
+    }
+
+    .section-copy-btn:hover svg {
+        opacity: 0.7;
+    }
+
+    .section-copy-btn:active svg {
+        transform: scale(0.9);
+    }
+
+    .section-copy-btn.copied svg {
+        opacity: 1;
+        color: var(--link);
+    }
+
+    .broken-link {
+        color: #dc3545 !important;
+        text-decoration: line-through wavy !important;
+    }
     """
+
+    private static var customCSS: String {
+        guard let path = UserDefaults.standard.string(forKey: "customCSSPath"),
+              !path.isEmpty,
+              let css = try? String(contentsOfFile: path, encoding: .utf8) else {
+            return ""
+        }
+        return css
+    }
 
     private static let highlightJSSetup = """
     document.querySelectorAll('pre code[class^="language-"]').forEach(function(el) {
         // highlight.js will be loaded if available
     });
+
+    // Section copy buttons
+    (function() {
+        var copySvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        var checkSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        var headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+        headings.forEach(function(h) {
+            var btn = document.createElement('button');
+            btn.className = 'section-copy-btn';
+            btn.innerHTML = copySvg;
+            btn.title = 'セクションをコピー';
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var content = [];
+                var el = h.nextElementSibling;
+                var hLevel = parseInt(h.tagName.charAt(1));
+                while (el) {
+                    if (/^H[1-6]$/.test(el.tagName) && parseInt(el.tagName.charAt(1)) <= hLevel) break;
+                    content.push(el.textContent);
+                    el = el.nextElementSibling;
+                }
+                var headingText = '';
+                for (var i = 0; i < h.childNodes.length; i++) {
+                    if (h.childNodes[i] !== btn) headingText += h.childNodes[i].textContent;
+                }
+                var text = headingText.trim() + '\\n\\n' + content.join('\\n');
+                window.webkit.messageHandlers.copySection.postMessage(text.trim());
+                btn.innerHTML = checkSvg;
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.innerHTML = copySvg;
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+            h.appendChild(btn);
+        });
+    })();
 
     // TOC scroll tracking
     (function() {
@@ -480,9 +618,18 @@ struct PreviewView: NSViewRepresentable {
     })();
     """
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var baseURL: URL?
         var onInternalLink: ((URL) -> Void)?
+
+        nonisolated func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            MainActor.assumeIsolated {
+                if message.name == "copySection", let text = message.body as? String {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                }
+            }
+        }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard navigationAction.navigationType == .linkActivated,

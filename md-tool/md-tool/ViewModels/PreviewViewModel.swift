@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 @Observable
 final class PreviewViewModel {
@@ -13,6 +14,8 @@ final class PreviewViewModel {
 
     private let fileWatcher = FileWatcher()
     private var currentURL: URL?
+    private var renderCache: [String: String] = [:]  // content hash -> html
+    private let maxCacheEntries = 50
 
     func loadFile(at url: URL?) {
         guard let url = url else {
@@ -41,8 +44,15 @@ final class PreviewViewModel {
     }
 
     func renderFromText(_ text: String, baseURL: URL) {
+        let key = cacheKey(text, baseURL: baseURL)
+        if let cached = renderCache[key] {
+            htmlContent = cached
+            return
+        }
         let renderer = MarkdownRenderer(baseURL: baseURL)
-        htmlContent = renderer.render(text)
+        let result = renderer.render(text)
+        storeCache(key: key, value: result)
+        htmlContent = result
     }
 
     private func renderFile(at url: URL) {
@@ -50,8 +60,32 @@ final class PreviewViewModel {
             htmlContent = "<p>ファイルを読み込めませんでした。</p>"
             return
         }
-        let renderer = MarkdownRenderer(baseURL: url.deletingLastPathComponent())
-        htmlContent = renderer.render(content)
+        let baseURL = url.deletingLastPathComponent()
+        let key = cacheKey(content, baseURL: baseURL)
+        if let cached = renderCache[key] {
+            htmlContent = cached
+            return
+        }
+        let renderer = MarkdownRenderer(baseURL: baseURL)
+        let result = renderer.render(content)
+        storeCache(key: key, value: result)
+        htmlContent = result
+    }
+
+    private func cacheKey(_ content: String, baseURL: URL) -> String {
+        let data = Data((content + baseURL.path).utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+
+    private func storeCache(key: String, value: String) {
+        if renderCache.count >= maxCacheEntries {
+            // Remove oldest (arbitrary) entry
+            if let firstKey = renderCache.keys.first {
+                renderCache.removeValue(forKey: firstKey)
+            }
+        }
+        renderCache[key] = value
     }
 
     private func watchCurrentFile() {
