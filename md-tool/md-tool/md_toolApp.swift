@@ -26,6 +26,14 @@ struct md_toolApp: App {
                 }
                 .keyboardShortcut("f", modifiers: [.command, .shift])
             }
+            CommandGroup(after: .toolbar) {
+                Button {
+                    NotificationCenter.default.post(name: .toggleTOC, object: nil)
+                } label: {
+                    Text("目次を表示")
+                }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+            }
         }
 
         Settings {
@@ -38,4 +46,5 @@ extension Notification.Name {
     static let addFolder = Notification.Name("addFolder")
     static let quickOpen = Notification.Name("quickOpen")
     static let fullTextSearch = Notification.Name("fullTextSearch")
+    static let toggleTOC = Notification.Name("toggleTOC")
 }

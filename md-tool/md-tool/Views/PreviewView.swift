@@ -4,6 +4,7 @@ import WebKit
 struct PreviewView: NSViewRepresentable {
     let htmlContent: String
     var baseURL: URL?
+    var showTOC: Bool = true
     var onInternalLink: ((URL) -> Void)?
 
     func makeNSView(context: Context) -> WKWebView {
@@ -37,7 +38,7 @@ struct PreviewView: NSViewRepresentable {
         \(Self.cssContent)
         </style>
         </head>
-        <body>
+        <body class="\(showTOC ? "" : "toc-hidden")">
         <article class="markdown-body">
         \(body)
         </article>
@@ -192,14 +193,13 @@ struct PreviewView: NSViewRepresentable {
 
     .toc-sidebar {
         position: fixed;
-        top: 24px;
-        right: 16px;
-        width: 200px;
-        max-height: calc(100vh - 48px);
+        top: 16px;
+        right: 12px;
+        width: 220px;
+        max-height: calc(100vh - 32px);
         overflow-y: auto;
         border-left: 2px solid var(--border);
-        padding-left: 12px;
-        font-size: 0.8em;
+        padding-left: 10px;
         scrollbar-width: none;
     }
 
@@ -209,10 +209,12 @@ struct PreviewView: NSViewRepresentable {
 
     .toc-sidebar .toc-title {
         font-weight: 600;
-        font-size: 0.9em;
-        margin-bottom: 8px;
+        font-size: 11px;
+        margin-bottom: 6px;
         color: var(--text);
-        opacity: 0.7;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .toc-sidebar ul {
@@ -222,26 +224,29 @@ struct PreviewView: NSViewRepresentable {
     }
 
     .toc-sidebar ul ul {
-        padding-left: 0.8em;
+        padding-left: 0.7em;
     }
 
     .toc-sidebar li {
         margin-bottom: 0;
-        line-height: 1.6;
+        line-height: 1.4;
     }
 
     .toc-sidebar a {
         color: var(--text);
-        opacity: 0.5;
+        opacity: 0.4;
         text-decoration: none;
         display: block;
-        padding: 1px 0;
-        transition: opacity 0.15s;
-        font-size: 0.95em;
+        padding: 1.5px 0;
+        transition: opacity 0.15s, color 0.15s;
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .toc-sidebar a:hover {
-        opacity: 0.85;
+        opacity: 0.8;
         text-decoration: none;
     }
 
@@ -252,7 +257,15 @@ struct PreviewView: NSViewRepresentable {
     }
 
     .markdown-body {
-        margin-right: 232px;
+        margin-right: 248px;
+    }
+
+    body.toc-hidden .toc-sidebar {
+        display: none;
+    }
+
+    body.toc-hidden .markdown-body {
+        margin-right: 0;
     }
 
     @media (max-width: 700px) {
@@ -272,27 +285,58 @@ struct PreviewView: NSViewRepresentable {
 
     // TOC scroll tracking
     (function() {
-        const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
-        const tocLinks = document.querySelectorAll('.toc-sidebar a');
+        var headings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
+        var tocLinks = document.querySelectorAll('.toc-sidebar a');
         if (headings.length === 0 || tocLinks.length === 0) return;
 
-        const observer = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-                if (entry.isIntersecting) {
-                    tocLinks.forEach(function(a) { a.classList.remove('active'); });
-                    const link = document.querySelector('.toc-sidebar a[href=\"#' + entry.target.id + '\"]');
-                    if (link) {
-                        link.classList.add('active');
-                        link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                    }
-                }
+        var clickScrolling = false;
+
+        // Click handler: immediate highlight + smooth scroll
+        tocLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('href').substring(1);
+                var target = document.getElementById(targetId);
+                if (!target) return;
+
+                clickScrolling = true;
+                setActive(targetId);
+                target.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(function() { clickScrolling = false; }, 800);
             });
-        }, { rootMargin: '0px 0px -80% 0px' });
+        });
 
-        headings.forEach(function(h) { observer.observe(h); });
+        // Scroll-based tracking
+        function updateActiveHeading() {
+            if (clickScrolling) return;
+            var scrollTop = window.scrollY;
+            var activeIndex = 0;
 
-        // Activate first heading initially
-        if (tocLinks.length > 0) tocLinks[0].classList.add('active');
+            for (var i = 0; i < headings.length; i++) {
+                if (headings[i].offsetTop <= scrollTop + 60) {
+                    activeIndex = i;
+                }
+            }
+
+            setActive(headings[activeIndex].id);
+        }
+
+        function setActive(id) {
+            tocLinks.forEach(function(a) { a.classList.remove('active'); });
+            var link = document.querySelector('.toc-sidebar a[href=\"#' + id + '\"]');
+            if (link) {
+                link.classList.add('active');
+                link.scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        var scrollTimer;
+        window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(updateActiveHeading, 30);
+        });
+
+        updateActiveHeading();
     })();
     """
 
@@ -304,14 +348,6 @@ struct PreviewView: NSViewRepresentable {
             guard navigationAction.navigationType == .linkActivated,
                   let url = navigationAction.request.url else {
                 decisionHandler(.allow)
-                return
-            }
-
-            // Anchor link (TOC navigation)
-            if url.scheme == "about" && url.fragment != nil {
-                let js = "document.getElementById('\(url.fragment!)').scrollIntoView({behavior:'smooth'})"
-                webView.evaluateJavaScript(js)
-                decisionHandler(.cancel)
                 return
             }
 

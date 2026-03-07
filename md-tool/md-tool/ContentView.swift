@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var previewVM = PreviewViewModel()
     @State private var showQuickOpen = false
     @State private var showSearch = false
+    @State private var showTOC = UserDefaults.standard.object(forKey: "showTOC") as? Bool ?? true
 
     var body: some View {
         NavigationSplitView {
@@ -30,6 +31,7 @@ struct ContentView: View {
                 PreviewView(
                     htmlContent: previewVM.htmlContent,
                     baseURL: fileURL.deletingLastPathComponent(),
+                    showTOC: showTOC,
                     onInternalLink: { url in
                         appState.selectFile(url)
                         previewVM.loadFile(at: url)
@@ -116,6 +118,10 @@ struct ContentView: View {
                 showQuickOpen = false
                 showSearch.toggle()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleTOC)) { _ in
+            showTOC.toggle()
+            UserDefaults.standard.set(showTOC, forKey: "showTOC")
         }
         .onAppear {
             if !appState.registeredFolderURLs.isEmpty {
