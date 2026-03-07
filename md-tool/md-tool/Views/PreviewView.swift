@@ -190,42 +190,75 @@ struct PreviewView: NSViewRepresentable {
         margin-right: 0.5em;
     }
 
-    .toc {
-        margin-bottom: 1.5em;
-        padding: 12px 16px;
-        background-color: var(--code-bg);
-        border-radius: 8px;
-        border: 1px solid var(--border);
+    .toc-sidebar {
+        position: fixed;
+        top: 24px;
+        right: 16px;
+        width: 200px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
+        border-left: 2px solid var(--border);
+        padding-left: 12px;
+        font-size: 0.8em;
+        scrollbar-width: none;
     }
 
-    .toc summary {
+    .toc-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .toc-sidebar .toc-title {
         font-weight: 600;
         font-size: 0.9em;
-        cursor: pointer;
-        margin-bottom: 0.5em;
+        margin-bottom: 8px;
         color: var(--text);
+        opacity: 0.7;
     }
 
-    .toc ul {
+    .toc-sidebar ul {
         list-style: none;
         padding-left: 0;
+        margin: 0;
+    }
+
+    .toc-sidebar ul ul {
+        padding-left: 0.8em;
+    }
+
+    .toc-sidebar li {
         margin-bottom: 0;
+        line-height: 1.6;
     }
 
-    .toc li {
-        margin-bottom: 0.2em;
-        line-height: 1.5;
+    .toc-sidebar a {
+        color: var(--text);
+        opacity: 0.5;
+        text-decoration: none;
+        display: block;
+        padding: 1px 0;
+        transition: opacity 0.15s;
+        font-size: 0.95em;
     }
 
-    .toc li a {
-        font-size: 0.85em;
+    .toc-sidebar a:hover {
+        opacity: 0.85;
+        text-decoration: none;
     }
 
-    .toc .toc-h2 { padding-left: 1em; }
-    .toc .toc-h3 { padding-left: 2em; }
-    .toc .toc-h4 { padding-left: 3em; }
-    .toc .toc-h5 { padding-left: 4em; }
-    .toc .toc-h6 { padding-left: 5em; }
+    .toc-sidebar a.active {
+        opacity: 1;
+        color: var(--link);
+        font-weight: 600;
+    }
+
+    .markdown-body {
+        margin-right: 232px;
+    }
+
+    @media (max-width: 700px) {
+        .toc-sidebar { display: none; }
+        .markdown-body { margin-right: 0; }
+    }
 
     h1, h2, h3, h4, h5, h6 {
         scroll-margin-top: 1em;
@@ -236,6 +269,31 @@ struct PreviewView: NSViewRepresentable {
     document.querySelectorAll('pre code[class^="language-"]').forEach(function(el) {
         // highlight.js will be loaded if available
     });
+
+    // TOC scroll tracking
+    (function() {
+        const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+        const tocLinks = document.querySelectorAll('.toc-sidebar a');
+        if (headings.length === 0 || tocLinks.length === 0) return;
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(function(a) { a.classList.remove('active'); });
+                    const link = document.querySelector('.toc-sidebar a[href=\"#' + entry.target.id + '\"]');
+                    if (link) {
+                        link.classList.add('active');
+                        link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                }
+            });
+        }, { rootMargin: '0px 0px -80% 0px' });
+
+        headings.forEach(function(h) { observer.observe(h); });
+
+        // Activate first heading initially
+        if (tocLinks.length > 0) tocLinks[0].classList.add('active');
+    })();
     """
 
     class Coordinator: NSObject, WKNavigationDelegate {

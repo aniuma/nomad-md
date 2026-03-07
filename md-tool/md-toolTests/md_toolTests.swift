@@ -93,10 +93,18 @@ struct MarkdownRendererTests {
 
     @Test func headingTOC() {
         let html = renderer.render("# Title\n## Section A\n## Section B")
-        #expect(html.contains("<nav class=\"toc\">"))
+        #expect(html.contains("<nav class=\"toc-sidebar\">"))
         #expect(html.contains("href=\"#title\""))
         #expect(html.contains("href=\"#section-a\""))
         #expect(html.contains("href=\"#section-b\""))
+    }
+
+    @Test func headingTOCNested() {
+        let html = renderer.render("# Top\n## Sub\n### Deep")
+        // Nested ul structure
+        #expect(html.contains("<ul>\n<li><a href=\"#top\">"))
+        #expect(html.contains("<ul>\n<li><a href=\"#sub\">"))
+        #expect(html.contains("<ul>\n<li><a href=\"#deep\">"))
     }
 
     @Test func headingDuplicateIds() {

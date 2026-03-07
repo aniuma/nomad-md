@@ -17,14 +17,36 @@ struct MarkdownRenderer {
             return generator.html
         }
 
-        var toc = "<nav class=\"toc\">\n<details open>\n<summary>目次</summary>\n<ul>\n"
-        for heading in generator.headings {
-            let indent = String(repeating: "  ", count: heading.level - 1)
-            toc += "\(indent)<li class=\"toc-h\(heading.level)\"><a href=\"#\(heading.id)\">\(heading.text)</a></li>\n"
-        }
-        toc += "</ul>\n</details>\n</nav>\n"
+        return generateNestedTOC(generator.headings) + generator.html
+    }
 
-        return toc + generator.html
+    private func generateNestedTOC(_ headings: [HeadingInfo]) -> String {
+        var html = "<nav class=\"toc-sidebar\">\n<div class=\"toc-title\">目次</div>\n"
+        var currentLevel = 0
+
+        for heading in headings {
+            if heading.level > currentLevel {
+                for _ in currentLevel..<heading.level {
+                    html += "<ul>\n"
+                }
+            } else if heading.level < currentLevel {
+                for _ in heading.level..<currentLevel {
+                    html += "</li>\n</ul>\n"
+                }
+                html += "</li>\n"
+            } else if currentLevel > 0 {
+                html += "</li>\n"
+            }
+            html += "<li><a href=\"#\(heading.id)\">\(heading.text)</a>\n"
+            currentLevel = heading.level
+        }
+
+        for _ in 0..<currentLevel {
+            html += "</li>\n</ul>\n"
+        }
+
+        html += "</nav>\n"
+        return html
     }
 }
 
