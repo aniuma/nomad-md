@@ -1,8 +1,8 @@
 # PRD: Finder直結型マークダウン管理ツール「md-tool」
 
-> **Version**: 0.1 (Draft)
-> **Date**: 2026-03-07
-> **Status**: 開発前仕様書
+> **Version**: 1.0
+> **Date**: 2026-03-08
+> **Status**: Phase 1 完了・リリース済み
 
 ---
 
