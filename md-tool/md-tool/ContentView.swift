@@ -4,6 +4,7 @@ struct ContentView: View {
     @State private var appState = AppState()
     @State private var sidebarVM: SidebarViewModel?
     @State private var previewVM = PreviewViewModel()
+    @State private var showQuickOpen = false
 
     var body: some View {
         NavigationSplitView {
@@ -36,6 +37,32 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewColumnWidth(min: 140, ideal: 200, max: 320)
+        .overlay {
+            if showQuickOpen, let vm = sidebarVM {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .onTapGesture { showQuickOpen = false }
+                    VStack {
+                        QuickOpenView(
+                            files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
+                            onSelect: { url in
+                                appState.selectFile(url)
+                                previewVM.loadFile(at: url)
+                            },
+                            onDismiss: { showQuickOpen = false }
+                        )
+                        .padding(.top, 80)
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in
+            if sidebarVM != nil {
+                showQuickOpen.toggle()
+            }
+        }
         .onAppear {
             if !appState.registeredFolderURLs.isEmpty {
                 initSidebarVM()

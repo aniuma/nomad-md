@@ -40,6 +40,19 @@ struct FileSystemService {
         return FileNode(url: url, isDirectory: true, children: children)
     }
 
+    static func collectAllMarkdownFiles(in node: FileNode) -> [URL] {
+        var result: [URL] = []
+        if !node.isDirectory {
+            result.append(node.url)
+        }
+        if let children = node.children {
+            for child in children {
+                result.append(contentsOf: collectAllMarkdownFiles(in: child))
+            }
+        }
+        return result
+    }
+
     static func findFirstMarkdownFile(in node: FileNode) -> URL? {
         if !node.isDirectory { return node.url }
         guard let children = node.children else { return nil }

@@ -14,6 +14,11 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .addFolder, object: nil)
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
+
+                Button("クイックオープン") {
+                    NotificationCenter.default.post(name: .quickOpen, object: nil)
+                }
+                .keyboardShortcut("p", modifiers: .command)
             }
         }
     }
@@ -21,4 +26,5 @@ struct md_toolApp: App {
 
 extension Notification.Name {
     static let addFolder = Notification.Name("addFolder")
+    static let quickOpen = Notification.Name("quickOpen")
 }
