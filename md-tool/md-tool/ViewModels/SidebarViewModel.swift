@@ -38,6 +38,20 @@ final class SidebarViewModel {
         startWatching()
     }
 
+    func addFolderByURL(_ url: URL) {
+        if appState.registeredFolderURLs.contains(where: { $0.path == url.path }) { return }
+
+        appState.addFolder(url)
+        if let node = FileSystemService.scanDirectory(at: url) {
+            rootNodes.append(node)
+            if appState.selectedFileURL == nil,
+               let firstFile = FileSystemService.findFirstMarkdownFile(in: node) {
+                appState.selectFile(firstFile)
+            }
+        }
+        startWatching()
+    }
+
     func removeFolder(at url: URL) {
         rootNodes.removeAll { $0.url.path == url.path }
         appState.removeFolder(url)

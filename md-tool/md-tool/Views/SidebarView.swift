@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
     @Bindable var viewModel: SidebarViewModel
@@ -6,6 +7,7 @@ struct SidebarView: View {
     let onSelect: (URL) -> Void
 
     @State private var folderToRemove: URL?
+    @State private var isDropTargeted = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +71,28 @@ struct SidebarView: View {
                 Spacer()
             }
             .padding(8)
+        }
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+                    .background(Color.accentColor.opacity(0.1))
+                    .padding(4)
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            for provider in providers {
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url else { return }
+                    var isDir: ObjCBool = false
+                    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
+                          isDir.boolValue else { return }
+                    DispatchQueue.main.async {
+                        viewModel.addFolderByURL(url)
+                    }
+                }
+            }
+            return true
         }
         .alert("フォルダを削除", isPresented: Binding(
             get: { folderToRemove != nil },
