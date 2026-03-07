@@ -20,7 +20,22 @@ struct SidebarView: View {
             } else {
                 List(selection: Binding(
                     get: { selectedFileURL },
-                    set: { if let url = $0 { onSelect(url) } }
+                    set: { url in
+                        guard let url else { return }
+                        var isDir: ObjCBool = false
+                        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+                            let readmeNames = ["README.md", "readme.md", "Readme.md", "README.markdown"]
+                            for name in readmeNames {
+                                let candidate = url.appendingPathComponent(name)
+                                if FileManager.default.fileExists(atPath: candidate.path) {
+                                    onSelect(candidate)
+                                    return
+                                }
+                            }
+                            return
+                        }
+                        onSelect(url)
+                    }
                 )) {
                     ForEach(viewModel.rootNodes, id: \.url) { root in
                         Section {

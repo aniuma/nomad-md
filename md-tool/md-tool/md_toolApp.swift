@@ -38,6 +38,11 @@ struct md_toolApp: App {
                 }
                 .keyboardShortcut("e", modifiers: .command)
 
+                Button("分割表示切替") {
+                    NotificationCenter.default.post(name: .toggleSplitMode, object: nil)
+                }
+                .keyboardShortcut("\\", modifiers: .command)
+
                 Button("目次を表示") {
                     NotificationCenter.default.post(name: .toggleTOC, object: nil)
                 }
@@ -58,4 +63,6 @@ extension Notification.Name {
     static let toggleTOC = Notification.Name("toggleTOC")
     static let toggleEditMode = Notification.Name("toggleEditMode")
     static let saveFile = Notification.Name("saveFile")
+    static let toggleSplitMode = Notification.Name("toggleSplitMode")
+    static let themeChanged = Notification.Name("themeChanged")
 }

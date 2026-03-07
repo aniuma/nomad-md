@@ -3,9 +3,26 @@ import SwiftUI
 struct SettingsView: View {
     @State private var patterns: [String] = ExclusionSettings.patterns
     @State private var newPattern = ""
+    @State private var selectedTheme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
 
     var body: some View {
         Form {
+            Section {
+                Picker("テーマ", selection: $selectedTheme) {
+                    Text("Default").tag("default")
+                    Text("GitHub").tag("github")
+                    Text("Minimal").tag("minimal")
+                    Text("Technical").tag("technical")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: selectedTheme) { _, newValue in
+                    UserDefaults.standard.set(newValue, forKey: "previewTheme")
+                    NotificationCenter.default.post(name: .themeChanged, object: nil)
+                }
+            } header: {
+                Text("プレビューテーマ")
+            }
+
             Section {
                 List {
                     ForEach(patterns, id: \.self) { pattern in
@@ -49,7 +66,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 350)
+        .frame(width: 400, height: 430)
     }
 
     private func addPattern() {

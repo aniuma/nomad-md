@@ -9,15 +9,78 @@ struct MarkdownRenderer {
     }
 
     func render(_ markdownString: String) -> String {
-        let document = Document(parsing: markdownString)
+        let (processedMarkdown, footnotes) = extractFootnotes(markdownString)
+        let document = Document(parsing: processedMarkdown)
         var generator = HTMLGenerator(baseURL: baseURL)
         generator.visit(document)
 
-        if generator.headings.isEmpty {
-            return generator.html
+        var html = generator.html
+
+        // Replace footnote reference placeholders
+        for (index, footnote) in footnotes.enumerated() {
+            let num = index + 1
+            let placeholder = "FNREF_\(footnote.id)_FNREF"
+            let ref = "<sup><a href=\"#fn-\(footnote.id)\" id=\"fnref-\(footnote.id)\" class=\"footnote-ref\">[\(num)]</a></sup>"
+            html = html.replacingOccurrences(of: placeholder, with: ref)
         }
 
-        return generateNestedTOC(generator.headings) + generator.html
+        // Append footnote definitions
+        if !footnotes.isEmpty {
+            html += renderFootnoteSection(footnotes)
+        }
+
+        if generator.headings.isEmpty {
+            return html
+        }
+
+        return generateNestedTOC(generator.headings) + html
+    }
+
+    private func extractFootnotes(_ markdown: String) -> (String, [FootnoteDefinition]) {
+        var lines = markdown.components(separatedBy: "\n")
+        var definitions: [FootnoteDefinition] = []
+        var definitionIds: [String] = []
+
+        // Extract footnote definitions: [^id]: text
+        let defPattern = try! NSRegularExpression(pattern: #"^\[\^([^\]]+)\]:\s+(.+)$"#, options: .anchorsMatchLines)
+        var indicesToRemove: [Int] = []
+
+        for (i, line) in lines.enumerated() {
+            let range = NSRange(line.startIndex..., in: line)
+            if let match = defPattern.firstMatch(in: line, range: range) {
+                let id = String(line[Range(match.range(at: 1), in: line)!])
+                let text = String(line[Range(match.range(at: 2), in: line)!])
+                if !definitionIds.contains(id) {
+                    definitions.append(FootnoteDefinition(id: id, text: text))
+                    definitionIds.append(id)
+                }
+                indicesToRemove.append(i)
+            }
+        }
+
+        for i in indicesToRemove.reversed() {
+            lines.remove(at: i)
+        }
+
+        // Replace footnote references [^id] with placeholders
+        var processed = lines.joined(separator: "\n")
+        let refPattern = try! NSRegularExpression(pattern: #"\[\^([^\]]+)\]"#)
+        let mutableString = NSMutableString(string: processed)
+        let fullRange = NSRange(location: 0, length: mutableString.length)
+        refPattern.replaceMatches(in: mutableString, range: fullRange, withTemplate: "FNREF_$1_FNREF")
+        processed = mutableString as String
+
+        return (processed, definitions)
+    }
+
+    private func renderFootnoteSection(_ footnotes: [FootnoteDefinition]) -> String {
+        var html = "<section class=\"footnotes\">\n<ol>\n"
+        for footnote in footnotes {
+            let text = footnote.text
+            html += "<li id=\"fn-\(footnote.id)\">\(text)<a href=\"#fnref-\(footnote.id)\" class=\"footnote-backref\">↩</a></li>\n"
+        }
+        html += "</ol>\n</section>\n"
+        return html
     }
 
     private func generateNestedTOC(_ headings: [HeadingInfo]) -> String {
@@ -48,6 +111,11 @@ struct MarkdownRenderer {
         html += "</nav>\n"
         return html
     }
+}
+
+struct FootnoteDefinition {
+    let id: String
+    let text: String
 }
 
 struct HeadingInfo {
@@ -114,11 +182,15 @@ struct HTMLGenerator: MarkupWalker {
 
     mutating func visitCodeBlock(_ codeBlock: CodeBlock) -> () {
         let lang = codeBlock.language ?? ""
-        let code = escapeHTML(codeBlock.code)
-        if lang.isEmpty {
-            html += "<pre><code>\(code)</code></pre>\n"
+        if lang == "mermaid" {
+            html += "<pre class=\"mermaid\">\(codeBlock.code)</pre>\n"
         } else {
-            html += "<pre><code class=\"language-\(lang)\">\(code)</code></pre>\n"
+            let code = escapeHTML(codeBlock.code)
+            if lang.isEmpty {
+                html += "<pre><code>\(code)</code></pre>\n"
+            } else {
+                html += "<pre><code class=\"language-\(lang)\">\(code)</code></pre>\n"
+            }
         }
     }
 

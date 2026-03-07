@@ -5,6 +5,7 @@ struct PreviewView: NSViewRepresentable {
     let htmlContent: String
     var baseURL: URL?
     var showTOC: Bool = true
+    var theme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
     var onInternalLink: ((URL) -> Void)?
 
     func makeNSView(context: Context) -> WKWebView {
@@ -35,13 +36,21 @@ struct PreviewView: NSViewRepresentable {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-        \(Self.cssContent)
+        \(Self.themeCSS(theme))
+        \(Self.layoutCSS)
         </style>
         </head>
         <body class="\(showTOC ? "" : "toc-hidden")">
         <article class="markdown-body">
         \(body)
         </article>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
+        <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
+        </script>
         <script>
         \(Self.highlightJSSetup)
         </script>
@@ -50,29 +59,127 @@ struct PreviewView: NSViewRepresentable {
         """
     }
 
-    private static let cssContent = """
-    :root {
-        --bg: #FFFBF7;
-        --text: #2C2C2C;
-        --code-bg: #F5F2F0;
-        --border: #E0DCD8;
-        --link: #0969DA;
-        --blockquote-border: #D0D7DE;
-        --blockquote-text: #656D76;
-    }
-
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bg: #2D2D2D;
-            --text: #E0E0E0;
-            --code-bg: #383838;
-            --border: #484848;
-            --link: #58A6FF;
-            --blockquote-border: #505050;
-            --blockquote-text: #A0A0A0;
+    private static func themeCSS(_ theme: String) -> String {
+        switch theme {
+        case "github":
+            return """
+            :root {
+                --bg: #ffffff;
+                --text: #1F2328;
+                --code-bg: #f6f8fa;
+                --border: #d0d7de;
+                --link: #0969da;
+                --blockquote-border: #d0d7de;
+                --blockquote-text: #656d76;
+                --font-body: -apple-system, "SF Pro Text", system-ui, sans-serif;
+                --font-heading: -apple-system, "SF Pro Display", system-ui, sans-serif;
+                --font-size: 16px;
+                --line-height: 1.5;
+                --letter-spacing: 0;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #0d1117;
+                    --text: #e6edf3;
+                    --code-bg: #161b22;
+                    --border: #30363d;
+                    --link: #58a6ff;
+                    --blockquote-border: #30363d;
+                    --blockquote-text: #8b949e;
+                }
+            }
+            h1 { border-bottom: 1px solid var(--border) !important; padding-bottom: 0.3em !important; }
+            """
+        case "minimal":
+            return """
+            :root {
+                --bg: #fafafa;
+                --text: #333333;
+                --code-bg: #f0f0f0;
+                --border: #e0e0e0;
+                --link: #555555;
+                --blockquote-border: #cccccc;
+                --blockquote-text: #777777;
+                --font-body: "Georgia", "Hiragino Mincho ProN", serif;
+                --font-heading: "Georgia", "Hiragino Mincho ProN", serif;
+                --font-size: 17px;
+                --line-height: 2.0;
+                --letter-spacing: 0.02em;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #1a1a1a;
+                    --text: #d4d4d4;
+                    --code-bg: #2a2a2a;
+                    --border: #3a3a3a;
+                    --link: #999999;
+                    --blockquote-border: #444444;
+                    --blockquote-text: #888888;
+                }
+            }
+            h1, h2, h3, h4, h5, h6 { font-weight: 400 !important; }
+            h2 { border-bottom: none !important; }
+            """
+        case "technical":
+            return """
+            :root {
+                --bg: #f8f9fa;
+                --text: #212529;
+                --code-bg: #e9ecef;
+                --border: #ced4da;
+                --link: #0d6efd;
+                --blockquote-border: #6c757d;
+                --blockquote-text: #6c757d;
+                --font-body: "SF Mono", Menlo, "Hiragino Kaku Gothic ProN", monospace;
+                --font-heading: "SF Mono", Menlo, "Hiragino Kaku Gothic ProN", monospace;
+                --font-size: 14px;
+                --line-height: 1.6;
+                --letter-spacing: 0;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #1e1e1e;
+                    --text: #d4d4d4;
+                    --code-bg: #2d2d2d;
+                    --border: #404040;
+                    --link: #4fc1ff;
+                    --blockquote-border: #555555;
+                    --blockquote-text: #969696;
+                }
+            }
+            """
+        default: // "default"
+            return """
+            :root {
+                --bg: #FFFBF7;
+                --text: #2C2C2C;
+                --code-bg: #F5F2F0;
+                --border: #E0DCD8;
+                --link: #0969DA;
+                --blockquote-border: #D0D7DE;
+                --blockquote-text: #656D76;
+                --font-body: "Hiragino Kaku Gothic ProN", "Hiragino Sans", -apple-system, "SF Pro Text", system-ui, sans-serif;
+                --font-heading: "Hiragino Kaku Gothic ProN", "Hiragino Sans", -apple-system, "SF Pro Display", system-ui, sans-serif;
+                --font-size: 16px;
+                --line-height: 1.8;
+                --letter-spacing: 0.03em;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #2D2D2D;
+                    --text: #E0E0E0;
+                    --code-bg: #383838;
+                    --border: #484848;
+                    --link: #58A6FF;
+                    --blockquote-border: #505050;
+                    --blockquote-text: #A0A0A0;
+                }
+            }
+            """
         }
     }
 
+    private static let layoutCSS = """
     * {
         margin: 0;
         padding: 0;
@@ -80,11 +187,10 @@ struct PreviewView: NSViewRepresentable {
     }
 
     body {
-        font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans",
-                     -apple-system, "SF Pro Text", system-ui, sans-serif;
-        font-size: 16px;
-        line-height: 1.8;
-        letter-spacing: 0.03em;
+        font-family: var(--font-body);
+        font-size: var(--font-size);
+        line-height: var(--line-height);
+        letter-spacing: var(--letter-spacing);
         color: var(--text);
         background-color: var(--bg);
         -webkit-font-smoothing: antialiased;
@@ -97,8 +203,7 @@ struct PreviewView: NSViewRepresentable {
     }
 
     h1, h2, h3, h4, h5, h6 {
-        font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans",
-                     -apple-system, "SF Pro Display", system-ui, sans-serif;
+        font-family: var(--font-heading);
         margin-top: 1.5em;
         margin-bottom: 0.5em;
         letter-spacing: -0.01em;
@@ -275,6 +380,41 @@ struct PreviewView: NSViewRepresentable {
 
     h1, h2, h3, h4, h5, h6 {
         scroll-margin-top: 1em;
+    }
+
+    pre.mermaid {
+        background: none;
+        border: none;
+        padding: 1em 0;
+        text-align: center;
+    }
+
+    .katex-display {
+        margin: 1em 0;
+        overflow-x: auto;
+    }
+
+    .footnotes {
+        margin-top: 2em;
+        padding-top: 1em;
+        border-top: 1px solid var(--border);
+        font-size: 0.9em;
+    }
+
+    .footnotes ol {
+        padding-left: 1.5em;
+    }
+
+    .footnote-ref {
+        font-size: 0.75em;
+        vertical-align: super;
+        line-height: 0;
+        text-decoration: none;
+    }
+
+    .footnote-backref {
+        text-decoration: none;
+        margin-left: 0.3em;
     }
     """
 
