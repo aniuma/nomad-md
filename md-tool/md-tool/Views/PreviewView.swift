@@ -3,6 +3,8 @@ import WebKit
 
 struct PreviewView: NSViewRepresentable {
     let htmlContent: String
+    var baseURL: URL?
+    var onInternalLink: ((URL) -> Void)?
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -14,6 +16,8 @@ struct PreviewView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        context.coordinator.baseURL = baseURL
+        context.coordinator.onInternalLink = onInternalLink
         let fullHTML = wrapInHTMLTemplate(htmlContent)
         webView.loadHTMLString(fullHTML, baseURL: nil)
     }
@@ -185,6 +189,47 @@ struct PreviewView: NSViewRepresentable {
     input[type="checkbox"] {
         margin-right: 0.5em;
     }
+
+    .toc {
+        margin-bottom: 1.5em;
+        padding: 12px 16px;
+        background-color: var(--code-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    .toc summary {
+        font-weight: 600;
+        font-size: 0.9em;
+        cursor: pointer;
+        margin-bottom: 0.5em;
+        color: var(--text);
+    }
+
+    .toc ul {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
+    .toc li {
+        margin-bottom: 0.2em;
+        line-height: 1.5;
+    }
+
+    .toc li a {
+        font-size: 0.85em;
+    }
+
+    .toc .toc-h2 { padding-left: 1em; }
+    .toc .toc-h3 { padding-left: 2em; }
+    .toc .toc-h4 { padding-left: 3em; }
+    .toc .toc-h5 { padding-left: 4em; }
+    .toc .toc-h6 { padding-left: 5em; }
+
+    h1, h2, h3, h4, h5, h6 {
+        scroll-margin-top: 1em;
+    }
     """
 
     private static let highlightJSSetup = """
@@ -194,14 +239,46 @@ struct PreviewView: NSViewRepresentable {
     """
 
     class Coordinator: NSObject, WKNavigationDelegate {
+        var baseURL: URL?
+        var onInternalLink: ((URL) -> Void)?
+
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            if navigationAction.navigationType == .linkActivated,
-               let url = navigationAction.request.url,
-               (url.scheme == "http" || url.scheme == "https") {
+            guard navigationAction.navigationType == .linkActivated,
+                  let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            // Anchor link (TOC navigation)
+            if url.scheme == "about" && url.fragment != nil {
+                let js = "document.getElementById('\(url.fragment!)').scrollIntoView({behavior:'smooth'})"
+                webView.evaluateJavaScript(js)
+                decisionHandler(.cancel)
+                return
+            }
+
+            // External link
+            if url.scheme == "http" || url.scheme == "https" {
                 NSWorkspace.shared.open(url)
                 decisionHandler(.cancel)
                 return
             }
+
+            // Internal .md link
+            if let baseURL = baseURL {
+                let dest = url.lastPathComponent.isEmpty ? url.absoluteString : url.lastPathComponent
+                let path = url.path.isEmpty ? dest : url.path
+                let ext = (path as NSString).pathExtension.lowercased()
+                if ext == "md" || ext == "markdown" {
+                    let resolvedURL = baseURL.appendingPathComponent(path).standardized
+                    if FileManager.default.fileExists(atPath: resolvedURL.path) {
+                        onInternalLink?(resolvedURL)
+                        decisionHandler(.cancel)
+                        return
+                    }
+                }
+            }
+
             decisionHandler(.allow)
         }
     }

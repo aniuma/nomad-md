@@ -88,7 +88,22 @@ struct MarkdownRendererTests {
 
     @Test func heading() {
         let html = renderer.render("# Hello")
-        #expect(html.contains("<h1>Hello</h1>"))
+        #expect(html.contains("<h1 id=\"hello\">Hello</h1>"))
+    }
+
+    @Test func headingTOC() {
+        let html = renderer.render("# Title\n## Section A\n## Section B")
+        #expect(html.contains("<nav class=\"toc\">"))
+        #expect(html.contains("href=\"#title\""))
+        #expect(html.contains("href=\"#section-a\""))
+        #expect(html.contains("href=\"#section-b\""))
+    }
+
+    @Test func headingDuplicateIds() {
+        let html = renderer.render("## Foo\n## Foo\n## Foo")
+        #expect(html.contains("id=\"foo\""))
+        #expect(html.contains("id=\"foo-1\""))
+        #expect(html.contains("id=\"foo-2\""))
     }
 
     @Test func paragraph() {

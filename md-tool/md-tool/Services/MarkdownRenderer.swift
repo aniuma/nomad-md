@@ -12,14 +12,34 @@ struct MarkdownRenderer {
         let document = Document(parsing: markdownString)
         var generator = HTMLGenerator(baseURL: baseURL)
         generator.visit(document)
-        return generator.html
+
+        if generator.headings.isEmpty {
+            return generator.html
+        }
+
+        var toc = "<nav class=\"toc\">\n<details open>\n<summary>目次</summary>\n<ul>\n"
+        for heading in generator.headings {
+            let indent = String(repeating: "  ", count: heading.level - 1)
+            toc += "\(indent)<li class=\"toc-h\(heading.level)\"><a href=\"#\(heading.id)\">\(heading.text)</a></li>\n"
+        }
+        toc += "</ul>\n</details>\n</nav>\n"
+
+        return toc + generator.html
     }
+}
+
+struct HeadingInfo {
+    let level: Int
+    let text: String
+    let id: String
 }
 
 struct HTMLGenerator: MarkupWalker {
     let baseURL: URL?
     private(set) var html = ""
+    private(set) var headings: [HeadingInfo] = []
     private var listItemPrefix = ""
+    private var headingIdCounts: [String: Int] = [:]
 
     init(baseURL: URL? = nil) {
         self.baseURL = baseURL
@@ -33,9 +53,29 @@ struct HTMLGenerator: MarkupWalker {
 
     mutating func visitHeading(_ heading: Heading) -> () {
         let tag = "h\(heading.level)"
-        html += "<\(tag)>"
+        let plainText = heading.plainText
+        var id = generateHeadingId(plainText)
+
+        // Handle duplicate IDs
+        if let count = headingIdCounts[id] {
+            headingIdCounts[id] = count + 1
+            id = "\(id)-\(count)"
+        } else {
+            headingIdCounts[id] = 1
+        }
+
+        headings.append(HeadingInfo(level: heading.level, text: escapeHTML(plainText), id: id))
+        html += "<\(tag) id=\"\(id)\">"
         descendInto(heading)
         html += "</\(tag)>\n"
+    }
+
+    private func generateHeadingId(_ text: String) -> String {
+        let lowered = text.lowercased()
+        let cleaned = lowered.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) || $0 == " " || $0 == "-" }
+        return String(cleaned)
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: " ", with: "-")
     }
 
     mutating func visitParagraph(_ paragraph: Paragraph) -> () {

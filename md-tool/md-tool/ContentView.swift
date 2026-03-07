@@ -26,8 +26,15 @@ struct ContentView: View {
                 }
             }
         } detail: {
-            if appState.selectedFileURL != nil {
-                PreviewView(htmlContent: previewVM.htmlContent)
+            if let fileURL = appState.selectedFileURL {
+                PreviewView(
+                    htmlContent: previewVM.htmlContent,
+                    baseURL: fileURL.deletingLastPathComponent(),
+                    onInternalLink: { url in
+                        appState.selectFile(url)
+                        previewVM.loadFile(at: url)
+                    }
+                )
             } else if !appState.registeredFolderURLs.isEmpty {
                 Text("Markdownファイルを選択してください")
                     .foregroundStyle(.secondary)
