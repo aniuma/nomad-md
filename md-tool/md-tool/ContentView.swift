@@ -25,7 +25,7 @@ struct ContentView: View {
         } detail: {
             if appState.selectedFileURL != nil {
                 PreviewView(htmlContent: previewVM.htmlContent)
-            } else if appState.registeredFolderURL != nil {
+            } else if !appState.registeredFolderURLs.isEmpty {
                 Text("Markdownファイルを選択してください")
                     .foregroundStyle(.secondary)
             } else {
@@ -37,12 +37,12 @@ struct ContentView: View {
         }
         .navigationSplitViewColumnWidth(min: 140, ideal: 200, max: 320)
         .onAppear {
-            if appState.registeredFolderURL != nil {
+            if !appState.registeredFolderURLs.isEmpty {
                 initSidebarVM()
                 if let url = appState.selectedFileURL {
                     previewVM.loadFile(at: url)
-                } else if let root = sidebarVM?.rootNode,
-                          let first = FileSystemService.findFirstMarkdownFile(in: root) {
+                } else if let firstRoot = sidebarVM?.rootNodes.first,
+                          let first = FileSystemService.findFirstMarkdownFile(in: firstRoot) {
                     appState.selectFile(first)
                     previewVM.loadFile(at: first)
                 }

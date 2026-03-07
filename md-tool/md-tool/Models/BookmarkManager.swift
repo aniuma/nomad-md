@@ -1,8 +1,22 @@
 import Foundation
 
 struct BookmarkManager {
-    private static let bookmarkKey = "registeredFolderBookmark"
+    private static let bookmarksKey = "registeredFolderBookmarks"
+    private static let legacyBookmarkKey = "registeredFolderBookmark"
     private static let selectedFileKey = "selectedFileURL"
+
+    // MARK: - Migration
+
+    static func migrateIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard let legacyData = defaults.data(forKey: legacyBookmarkKey) else { return }
+        var existing = defaults.array(forKey: bookmarksKey) as? [Data] ?? []
+        existing.append(legacyData)
+        defaults.set(existing, forKey: bookmarksKey)
+        defaults.removeObject(forKey: legacyBookmarkKey)
+    }
+
+    // MARK: - Multiple Bookmarks
 
     static func saveBookmark(for url: URL) throws {
         let bookmarkData = try url.bookmarkData(
@@ -10,29 +24,66 @@ struct BookmarkManager {
             includingResourceValuesForKeys: nil,
             relativeTo: nil
         )
-        UserDefaults.standard.set(bookmarkData, forKey: bookmarkKey)
+        var existing = UserDefaults.standard.array(forKey: bookmarksKey) as? [Data] ?? []
+        // Avoid duplicates by resolving existing bookmarks
+        let existingURLs = existing.compactMap { resolveBookmarkData($0) }
+        if existingURLs.contains(where: { $0.path == url.path }) { return }
+        existing.append(bookmarkData)
+        UserDefaults.standard.set(existing, forKey: bookmarksKey)
     }
 
-    static func restoreBookmark() -> URL? {
-        guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
-        var isStale = false
-        guard let url = try? URL(
-            resolvingBookmarkData: data,
-            options: [],
-            relativeTo: nil,
-            bookmarkDataIsStale: &isStale
-        ) else { return nil }
-
-        if isStale {
-            try? saveBookmark(for: url)
+    static func restoreBookmarks() -> [URL] {
+        guard let dataArray = UserDefaults.standard.array(forKey: bookmarksKey) as? [Data] else {
+            return []
         }
-        return url
+        var urls: [URL] = []
+        var updatedData: [Data] = []
+        for data in dataArray {
+            var isStale = false
+            guard let url = try? URL(
+                resolvingBookmarkData: data,
+                options: [],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) else { continue }
+            if isStale {
+                if let refreshed = try? url.bookmarkData(
+                    options: [],
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                ) {
+                    updatedData.append(refreshed)
+                } else {
+                    updatedData.append(data)
+                }
+            } else {
+                updatedData.append(data)
+            }
+            urls.append(url)
+        }
+        if updatedData.count != dataArray.count || updatedData != dataArray {
+            UserDefaults.standard.set(updatedData, forKey: bookmarksKey)
+        }
+        return urls
     }
 
-    static func clearBookmark() {
-        UserDefaults.standard.removeObject(forKey: bookmarkKey)
+    static func removeBookmark(for url: URL) {
+        guard let dataArray = UserDefaults.standard.array(forKey: bookmarksKey) as? [Data] else {
+            return
+        }
+        let filtered = dataArray.filter { data in
+            guard let resolved = resolveBookmarkData(data) else { return false }
+            return resolved.path != url.path
+        }
+        UserDefaults.standard.set(filtered, forKey: bookmarksKey)
+    }
+
+    static func clearAllBookmarks() {
+        UserDefaults.standard.removeObject(forKey: bookmarksKey)
         UserDefaults.standard.removeObject(forKey: selectedFileKey)
     }
+
+    // MARK: - Selected File
 
     static func saveSelectedFile(_ url: URL?) {
         UserDefaults.standard.set(url?.path, forKey: selectedFileKey)
@@ -42,5 +93,17 @@ struct BookmarkManager {
         guard let path = UserDefaults.standard.string(forKey: selectedFileKey) else { return nil }
         let url = URL(fileURLWithPath: path)
         return FileManager.default.fileExists(atPath: path) ? url : nil
+    }
+
+    // MARK: - Private
+
+    private static func resolveBookmarkData(_ data: Data) -> URL? {
+        var isStale = false
+        return try? URL(
+            resolvingBookmarkData: data,
+            options: [],
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        )
     }
 }

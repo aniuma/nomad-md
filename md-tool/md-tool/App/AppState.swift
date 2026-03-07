@@ -2,23 +2,30 @@ import Foundation
 
 @Observable
 final class AppState {
-    var registeredFolderURL: URL?
+    var registeredFolderURLs: [URL]
     var selectedFileURL: URL?
 
     init() {
-        self.registeredFolderURL = BookmarkManager.restoreBookmark()
+        BookmarkManager.migrateIfNeeded()
+        self.registeredFolderURLs = BookmarkManager.restoreBookmarks()
         self.selectedFileURL = BookmarkManager.restoreSelectedFile()
     }
 
-    func registerFolder(_ url: URL) {
+    func addFolder(_ url: URL) {
         try? BookmarkManager.saveBookmark(for: url)
-        registeredFolderURL = url
+        if !registeredFolderURLs.contains(where: { $0.path == url.path }) {
+            registeredFolderURLs.append(url)
+        }
     }
 
-    func unregisterFolder() {
-        BookmarkManager.clearBookmark()
-        registeredFolderURL = nil
-        selectedFileURL = nil
+    func removeFolder(_ url: URL) {
+        BookmarkManager.removeBookmark(for: url)
+        registeredFolderURLs.removeAll { $0.path == url.path }
+        // Clear selected file if it was inside the removed folder
+        if let selected = selectedFileURL, selected.path.hasPrefix(url.path) {
+            selectedFileURL = nil
+            BookmarkManager.saveSelectedFile(nil)
+        }
     }
 
     func selectFile(_ url: URL?) {
