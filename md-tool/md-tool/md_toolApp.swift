@@ -14,6 +14,11 @@ struct NomadApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(after: .newItem) {
+                Button("新規Markdownファイル") {
+                    NotificationCenter.default.post(name: .createNewFile, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+
                 Button("フォルダを追加...") {
                     NotificationCenter.default.post(name: .addFolder, object: nil)
                 }
@@ -136,4 +141,5 @@ extension Notification.Name {
     static let closeTab = Notification.Name("closeTab")
     static let showRecentFiles = Notification.Name("showRecentFiles")
     static let appearanceChanged = Notification.Name("appearanceChanged")
+    static let createNewFile = Notification.Name("createNewFile")
 }

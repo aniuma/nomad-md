@@ -28,11 +28,11 @@ struct SettingsView: View {
 
             Section {
                 Picker("テーマ", selection: $selectedTheme) {
-                    Text("Default").tag("default")
+                    Text("デフォルト").tag("default")
                     Text("GitHub").tag("github")
                     Text("Notion").tag("notion")
-                    Text("Minimal").tag("minimal")
-                    Text("Technical").tag("technical")
+                    Text("ミニマル").tag("minimal")
+                    Text("テクニカル").tag("technical")
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: selectedTheme) { _, newValue in

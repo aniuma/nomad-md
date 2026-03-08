@@ -1,8 +1,10 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct EditorView: NSViewRepresentable {
     @Binding var text: String
+    var fileURL: URL?
     var onTextChange: (String) -> Void
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -28,6 +30,9 @@ struct EditorView: NSViewRepresentable {
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
 
+        // 画像ドロップ対応
+        textView.registerForDraggedTypes([.fileURL])
+
         textView.delegate = context.coordinator
         context.coordinator.textView = textView
 
@@ -36,6 +41,7 @@ struct EditorView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         let textView = scrollView.documentView as! NSTextView
+        context.coordinator.fileURL = fileURL
         if textView.string != text {
             let selectedRanges = textView.selectedRanges
             textView.string = text
@@ -51,6 +57,9 @@ struct EditorView: NSViewRepresentable {
     class Coordinator: NSObject, NSTextViewDelegate {
         var onTextChange: (String) -> Void
         weak var textView: NSTextView?
+        var fileURL: URL?
+
+        private static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "tiff", "tif", "ico"]
 
         init(onTextChange: @escaping (String) -> Void) {
             self.onTextChange = onTextChange
@@ -61,6 +70,124 @@ struct EditorView: NSViewRepresentable {
             applyHighlighting(textView)
             onTextChange(textView.string)
         }
+
+        // MARK: - List Continuation
+
+        func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
+            guard let replacement = replacementString, replacement == "\n" else { return true }
+            let text = textView.string as NSString
+            let lineRange = text.lineRange(for: NSRange(location: affectedCharRange.location, length: 0))
+            let currentLine = text.substring(with: lineRange).trimmingCharacters(in: .newlines)
+
+            // マッチするリストパターン
+            let patterns: [(regex: String, builder: (NSTextCheckingResult, String) -> String?)] = [
+                // チェックリスト: - [ ] or - [x]
+                (#"^(\s*)- \[[ x]\] (.+)$"#, { match, line in
+                    let indent = Range(match.range(at: 1), in: line).map { String(line[$0]) } ?? ""
+                    return "\(indent)- [ ] "
+                }),
+                // 順序なしリスト: - or * or +
+                (#"^(\s*)([-*+]) (.+)$"#, { match, line in
+                    let indent = Range(match.range(at: 1), in: line).map { String(line[$0]) } ?? ""
+                    let marker = Range(match.range(at: 2), in: line).map { String(line[$0]) } ?? "-"
+                    return "\(indent)\(marker) "
+                }),
+                // 順序付きリスト: 1. 2. etc
+                (#"^(\s*)(\d+)\. (.+)$"#, { match, line in
+                    let indent = Range(match.range(at: 1), in: line).map { String(line[$0]) } ?? ""
+                    let num = Range(match.range(at: 2), in: line).flatMap { Int(line[$0]) } ?? 0
+                    return "\(indent)\(num + 1). "
+                }),
+            ]
+
+            // 空のリスト項目（マーカーだけ）→ リストを終了
+            let emptyPatterns = [
+                #"^\s*[-*+] \[[ x]\]\s*$"#,
+                #"^\s*[-*+]\s*$"#,
+                #"^\s*\d+\.\s*$"#,
+            ]
+            for pattern in emptyPatterns {
+                if currentLine.range(of: pattern, options: .regularExpression) != nil {
+                    // 現在行を空行に置き換え
+                    textView.insertText("\n", replacementRange: NSRange(location: lineRange.location, length: lineRange.length))
+                    return false
+                }
+            }
+
+            for (pattern, builder) in patterns {
+                guard let regex = try? NSRegularExpression(pattern: pattern),
+                      let match = regex.firstMatch(in: currentLine, range: NSRange(currentLine.startIndex..., in: currentLine)),
+                      let prefix = builder(match, currentLine) else { continue }
+                textView.insertText("\n\(prefix)", replacementRange: affectedCharRange)
+                return false
+            }
+
+            return true
+        }
+
+        // MARK: - Drag & Drop
+
+        func textView(_ view: NSTextView, draggingEntered info: any NSDraggingInfo) -> NSDragOperation {
+            guard hasImageFiles(in: info) else { return [] }
+            return .copy
+        }
+
+        func textView(_ view: NSTextView, performDragOperation info: any NSDraggingInfo) -> Bool {
+            guard let fileURL = fileURL else { return false }
+            let baseDir = fileURL.deletingLastPathComponent()
+
+            guard let items = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [
+                .urlReadingFileURLsOnly: true
+            ]) as? [URL] else { return false }
+
+            let imageURLs = items.filter { Self.imageExtensions.contains($0.pathExtension.lowercased()) }
+            guard !imageURLs.isEmpty else { return false }
+
+            var markdownSnippets: [String] = []
+
+            for imageURL in imageURLs {
+                let fileName = imageURL.lastPathComponent
+                let destURL = uniqueURL(for: fileName, in: baseDir)
+
+                do {
+                    try FileManager.default.copyItem(at: imageURL, to: destURL)
+                    let relativePath = destURL.lastPathComponent
+                    markdownSnippets.append("![\(destURL.deletingPathExtension().lastPathComponent)](\(relativePath))")
+                } catch {
+                    print("Image copy failed: \(error)")
+                }
+            }
+
+            guard !markdownSnippets.isEmpty else { return false }
+
+            let insertion = markdownSnippets.joined(separator: "\n") + "\n"
+            view.insertText(insertion, replacementRange: view.selectedRange())
+
+            return true
+        }
+
+        private func hasImageFiles(in info: NSDraggingInfo) -> Bool {
+            guard let items = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [
+                .urlReadingFileURLsOnly: true
+            ]) as? [URL] else { return false }
+            return items.contains { Self.imageExtensions.contains($0.pathExtension.lowercased()) }
+        }
+
+        private func uniqueURL(for fileName: String, in directory: URL) -> URL {
+            var destURL = directory.appendingPathComponent(fileName)
+            guard FileManager.default.fileExists(atPath: destURL.path) else { return destURL }
+
+            let name = destURL.deletingPathExtension().lastPathComponent
+            let ext = destURL.pathExtension
+            var counter = 1
+            repeat {
+                destURL = directory.appendingPathComponent("\(name)-\(counter).\(ext)")
+                counter += 1
+            } while FileManager.default.fileExists(atPath: destURL.path)
+            return destURL
+        }
+
+        // MARK: - Syntax Highlighting
 
         func applyHighlighting(_ textView: NSTextView) {
             guard let textStorage = textView.textStorage else { return }

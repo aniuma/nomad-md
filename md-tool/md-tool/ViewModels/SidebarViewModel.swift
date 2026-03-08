@@ -116,6 +116,42 @@ final class SidebarViewModel {
         selectedTag = nil
     }
 
+    /// 新規Markdownファイルを作成（NSSavePanel）
+    func createNewFile(in directoryURL: URL?) -> URL? {
+        let panel = NSSavePanel()
+        panel.title = "新規Markdownファイル"
+        panel.nameFieldStringValue = "新規ファイル.md"
+        panel.allowedContentTypes = [.init(filenameExtension: "md")!]
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+
+        // 初期ディレクトリ: 選択中ファイルの同階層 → 登録フォルダの先頭
+        if let dir = directoryURL {
+            panel.directoryURL = dir
+        } else if let first = appState.registeredFolderURLs.first {
+            panel.directoryURL = first
+        }
+
+        guard panel.runModal() == .OK, let fileURL = panel.url else { return nil }
+
+        // タイトルをファイル名から推定して # 見出し挿入
+        let title = fileURL.deletingPathExtension().lastPathComponent
+        let initialContent = (title == "新規ファイル" || title == "Untitled") ? "" : "# \(title)\n\n"
+        do {
+            try initialContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            // 保存先フォルダがサイドバーに未登録なら追加
+            let parentDir = fileURL.deletingLastPathComponent()
+            if !appState.registeredFolderURLs.contains(where: { parentDir.path.hasPrefix($0.path) }) {
+                addFolderByURL(parentDir)
+            }
+            refreshAllFolders()
+            return fileURL
+        } catch {
+            print("Failed to create file: \(error)")
+            return nil
+        }
+    }
+
     func refreshFolder(at url: URL) {
         guard let index = rootNodes.firstIndex(where: { $0.url.path == url.path }) else { return }
         if let node = FileSystemService.scanDirectory(at: url) {

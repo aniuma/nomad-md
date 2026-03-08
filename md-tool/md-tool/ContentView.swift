@@ -139,10 +139,10 @@ struct ContentView: View {
             Image(systemName: "compass.drawing")
                 .font(.system(size: 40, weight: .thin))
                 .foregroundStyle(NomadColors.sandGold.opacity(0.6))
-            Text("「\(fileURL.lastPathComponent)」にREADME.mdがありません")
+            Text("「\(fileURL.lastPathComponent)」にMarkdownファイルがありません")
                 .font(.title3)
                 .foregroundStyle(.secondary)
-            Text("フォルダをクリックすると、README.mdがあれば自動的に表示します。\nMarkdownファイルをサイドバーから選択してください。")
+            Text("サイドバーからMarkdownファイルを選択してください。")
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -222,6 +222,7 @@ struct ContentView: View {
         } else {
             EditorView(
                 text: $editorVM.text,
+                fileURL: appState.activeTabURL,
                 onTextChange: { editorVM.textDidChange($0) }
             )
         }
@@ -232,6 +233,7 @@ struct ContentView: View {
         HSplitView {
             EditorView(
                 text: $editorVM.text,
+                fileURL: fileURL,
                 onTextChange: { newText in
                     editorVM.textDidChange(newText)
                     previewVM.renderFromText(newText, baseURL: fileURL.deletingLastPathComponent())
@@ -534,6 +536,21 @@ private struct NotificationModifier: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .appearanceChanged)) { _ in
                 appearanceMode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .createNewFile)) { _ in
+                guard let vm = sidebarVM else { return }
+                let dir = appState.selectedFileURL?.hasDirectoryPath == true
+                    ? appState.selectedFileURL
+                    : appState.selectedFileURL?.deletingLastPathComponent()
+                if let url = vm.createNewFile(in: dir) {
+                    selectFile(url)
+                    if viewMode == .preview {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            editorVM.loadFile(at: url)
+                            viewMode = .edit
+                        }
+                    }
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .openFolderByURL)) { notification in
                 guard let folderURL = notification.object as? URL else { return }

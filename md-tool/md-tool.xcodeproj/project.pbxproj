@@ -346,11 +346,12 @@
 				};
 			};
 			buildConfigurationList = 3ADD45662F5C655E00ABBED1 /* Build configuration list for PBXProject "md-tool" */;
-			developmentRegion = en;
+			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = 3ADD45622F5C655E00ABBED1;
 			minimizedProjectReferenceProxies = 1;

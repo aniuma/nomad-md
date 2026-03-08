@@ -25,13 +25,8 @@ struct SidebarView: View {
                         guard let url else { return }
                         var isDir: ObjCBool = false
                         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-                            let readmeNames = ["README.md", "readme.md", "Readme.md", "README.markdown"]
-                            for name in readmeNames {
-                                let candidate = url.appendingPathComponent(name)
-                                if FileManager.default.fileExists(atPath: candidate.path) {
-                                    onSelect(candidate)
-                                    return
-                                }
+                            if let file = Self.findFileInDirectory(url) {
+                                onSelect(file)
                             }
                             return
                         }
@@ -154,6 +149,19 @@ struct SidebarView: View {
                 .buttonStyle(.borderless)
 
                 Spacer()
+
+                Button {
+                    let dir = selectedFileURL?.hasDirectoryPath == true
+                        ? selectedFileURL
+                        : selectedFileURL?.deletingLastPathComponent()
+                    if let url = viewModel.createNewFile(in: dir) {
+                        onSelect(url)
+                    }
+                } label: {
+                    Label("新規ファイル", systemImage: "doc.badge.plus")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
             }
             .padding(8)
         }
@@ -187,6 +195,21 @@ struct SidebarView: View {
                 Text("「\(url.lastPathComponent)」をサイドバーから削除しますか？\nファイルは削除されません。")
             }
         }
+    }
+
+    /// ディレクトリ内のREADME.mdまたは最初のMarkdownファイルを探す
+    private static func findFileInDirectory(_ url: URL) -> URL? {
+        let readmeNames = ["README.md", "readme.md", "Readme.md", "README.markdown"]
+        for name in readmeNames {
+            let candidate = url.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        if let node = FileSystemService.scanDirectory(at: url) {
+            return FileSystemService.findFirstMarkdownFile(in: node)
+        }
+        return nil
     }
 
     private func handleDrop(providers: [NSItemProvider]) {
