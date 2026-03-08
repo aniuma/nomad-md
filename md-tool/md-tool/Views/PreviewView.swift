@@ -7,6 +7,7 @@ struct PreviewView: NSViewRepresentable {
     var showTOC: Bool = true
     var theme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
     var onInternalLink: ((URL) -> Void)?
+    var onWebViewReady: ((WKWebView) -> Void)?
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -15,12 +16,15 @@ struct PreviewView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
+        context.coordinator.webView = webView
+        onWebViewReady?(webView)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.baseURL = baseURL
         context.coordinator.onInternalLink = onInternalLink
+        onWebViewReady?(webView)
         let fullHTML = wrapInHTMLTemplate(htmlContent)
         webView.loadHTMLString(fullHTML, baseURL: nil)
     }
@@ -507,6 +511,177 @@ struct PreviewView: NSViewRepresentable {
         color: #dc3545 !important;
         text-decoration: line-through wavy !important;
     }
+
+    /* Front Matter metadata */
+    .front-matter {
+        margin-bottom: 1.5em;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--code-bg) 60%, var(--bg));
+        font-size: 0.85em;
+        overflow: hidden;
+    }
+
+    .front-matter details {
+        padding: 0;
+    }
+
+    .front-matter summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text);
+        opacity: 0.5;
+        padding: 10px 14px;
+        user-select: none;
+    }
+
+    .front-matter summary:hover {
+        opacity: 0.8;
+    }
+
+    .front-matter table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        border-top: 1px solid var(--border);
+    }
+
+    .front-matter th,
+    .front-matter td {
+        padding: 6px 14px;
+        border: none;
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+        vertical-align: top;
+    }
+
+    .front-matter tr:last-child th,
+    .front-matter tr:last-child td {
+        border-bottom: none;
+    }
+
+    .front-matter th {
+        width: 120px;
+        font-weight: 600;
+        font-size: 0.9em;
+        color: var(--text);
+        opacity: 0.6;
+        background: none;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .front-matter td {
+        color: var(--text);
+        opacity: 0.85;
+    }
+
+    .front-matter-tag {
+        display: inline-block;
+        background: color-mix(in srgb, var(--link) 12%, transparent);
+        color: var(--link);
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 0.9em;
+        margin: 1px 3px 1px 0;
+    }
+
+    /* Callout / Admonition */
+    .callout {
+        margin-bottom: 1em;
+        border-radius: 6px;
+        border-left: 4px solid;
+        overflow: hidden;
+    }
+
+    .callout .callout-title {
+        font-weight: 600;
+        font-size: 0.95em;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .callout .callout-icon {
+        font-size: 1.1em;
+        line-height: 1;
+    }
+
+    .callout .callout-body {
+        padding: 4px 12px 8px 12px;
+        font-size: 0.95em;
+    }
+
+    .callout .callout-body p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Collapsible callout */
+    .callout-collapsible details summary {
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .callout-collapsible details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .callout-collapsible details summary::after {
+        content: "\\25B6";
+        font-size: 0.7em;
+        margin-left: auto;
+        transition: transform 0.2s;
+    }
+
+    .callout-collapsible details[open] summary::after {
+        transform: rotate(90deg);
+    }
+
+    /* NOTE - blue */
+    .callout-note {
+        border-left-color: #4393e5;
+        background: rgba(67, 147, 229, 0.08);
+    }
+    .callout-note .callout-title { color: #4393e5; }
+
+    /* TIP - green */
+    .callout-tip {
+        border-left-color: #3fb950;
+        background: rgba(63, 185, 80, 0.08);
+    }
+    .callout-tip .callout-title { color: #3fb950; }
+
+    /* WARNING - yellow */
+    .callout-warning {
+        border-left-color: #d29922;
+        background: rgba(210, 153, 34, 0.08);
+    }
+    .callout-warning .callout-title { color: #d29922; }
+
+    /* IMPORTANT - purple */
+    .callout-important {
+        border-left-color: #a371f7;
+        background: rgba(163, 113, 247, 0.08);
+    }
+    .callout-important .callout-title { color: #a371f7; }
+
+    /* CAUTION - red */
+    .callout-caution {
+        border-left-color: #f85149;
+        background: rgba(248, 81, 73, 0.08);
+    }
+    .callout-caution .callout-title { color: #f85149; }
+
+    @media (prefers-color-scheme: dark) {
+        .callout-note { background: rgba(67, 147, 229, 0.12); }
+        .callout-tip { background: rgba(63, 185, 80, 0.12); }
+        .callout-warning { background: rgba(210, 153, 34, 0.12); }
+        .callout-important { background: rgba(163, 113, 247, 0.12); }
+        .callout-caution { background: rgba(248, 81, 73, 0.12); }
+    }
     """
 
     private static var customCSS: String {
@@ -618,9 +793,48 @@ struct PreviewView: NSViewRepresentable {
     })();
     """
 
+    // MARK: - Export HTML Template (public static for ExportService)
+
+    static func exportHTMLTemplate(_ body: String, theme: String, showTOC: Bool) -> String {
+        // エクスポート用: TOC非表示、コピーボタン非表示、JSはKaTeX/Mermaidのみ
+        let exportCSS = """
+        .section-copy-btn { display: none !important; }
+        .toc-sidebar { display: none !important; }
+        .markdown-body { margin-right: 0 !important; }
+        """
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+        \(themeCSS(theme))
+        \(layoutCSS)
+        \(customCSS)
+        \(exportCSS)
+        </style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+        </head>
+        <body class="toc-hidden">
+        <article class="markdown-body">
+        \(body)
+        </article>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
+        <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+        </script>
+        </body>
+        </html>
+        """
+    }
+
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var baseURL: URL?
         var onInternalLink: ((URL) -> Void)?
+        weak var webView: WKWebView?
 
         nonisolated func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             MainActor.assumeIsolated {

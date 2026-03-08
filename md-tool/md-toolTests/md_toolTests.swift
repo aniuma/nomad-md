@@ -195,4 +195,53 @@ struct MarkdownRendererTests {
         let html = renderer.render("Use `<div>` tag")
         #expect(html.contains("&lt;div&gt;"))
     }
+
+    // MARK: - Callout / Admonition
+
+    @Test func calloutNote() {
+        let html = renderer.render("> [!NOTE]\n> This is a note.")
+        #expect(html.contains("callout callout-note"))
+        #expect(html.contains("callout-title"))
+        #expect(html.contains("Note"))
+        #expect(html.contains("This is a note."))
+        #expect(!html.contains("<blockquote>"))
+    }
+
+    @Test func calloutTip() {
+        let html = renderer.render("> [!TIP]\n> Helpful tip here.")
+        #expect(html.contains("callout-tip"))
+        #expect(html.contains("Tip"))
+    }
+
+    @Test func calloutWarning() {
+        let html = renderer.render("> [!WARNING]\n> Be careful.")
+        #expect(html.contains("callout-warning"))
+        #expect(html.contains("Warning"))
+    }
+
+    @Test func calloutImportant() {
+        let html = renderer.render("> [!IMPORTANT]\n> Critical info.")
+        #expect(html.contains("callout-important"))
+        #expect(html.contains("Important"))
+    }
+
+    @Test func calloutCaution() {
+        let html = renderer.render("> [!CAUTION]\n> Danger zone.")
+        #expect(html.contains("callout-caution"))
+        #expect(html.contains("Caution"))
+    }
+
+    @Test func calloutCollapsible() {
+        let html = renderer.render("> [!NOTE]-\n> Collapsed content.")
+        #expect(html.contains("callout-collapsible"))
+        #expect(html.contains("<details>"))
+        #expect(html.contains("<summary"))
+        #expect(html.contains("Collapsed content."))
+    }
+
+    @Test func regularBlockquoteUnchanged() {
+        let html = renderer.render("> Regular quote text")
+        #expect(html.contains("<blockquote>"), "HTML should contain blockquote: \(html)")
+        #expect(!html.contains("<div class=\"callout"), "HTML should not contain callout div: \(html)")
+    }
 }

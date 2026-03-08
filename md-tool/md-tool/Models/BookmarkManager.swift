@@ -95,6 +95,38 @@ struct BookmarkManager {
         return FileManager.default.fileExists(atPath: path) ? url : nil
     }
 
+    // MARK: - Recent Files
+
+    private static let recentFilesKey = "recentFiles"
+    private static let maxRecentFiles = 20
+
+    static func saveRecentFiles(_ urls: [URL]) {
+        let paths = urls.map { $0.path }
+        UserDefaults.standard.set(paths, forKey: recentFilesKey)
+    }
+
+    static func restoreRecentFiles() -> [URL] {
+        guard let paths = UserDefaults.standard.stringArray(forKey: recentFilesKey) else { return [] }
+        return paths.compactMap { path in
+            let url = URL(fileURLWithPath: path)
+            return FileManager.default.fileExists(atPath: path) ? url : nil
+        }
+    }
+
+    static func addRecentFile(_ url: URL) {
+        var recent = restoreRecentFiles()
+        recent.removeAll { $0.path == url.path }
+        recent.insert(url, at: 0)
+        if recent.count > maxRecentFiles {
+            recent = Array(recent.prefix(maxRecentFiles))
+        }
+        saveRecentFiles(recent)
+    }
+
+    static func clearRecentFiles() {
+        UserDefaults.standard.removeObject(forKey: recentFilesKey)
+    }
+
     // MARK: - Private
 
     private static func resolveBookmarkData(_ data: Data) -> URL? {

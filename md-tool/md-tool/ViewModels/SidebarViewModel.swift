@@ -4,15 +4,29 @@ import AppKit
 @Observable
 final class SidebarViewModel {
     var rootNodes: [FileNode] = []
+    var allTags: [String: [URL]] = [:]
+    var selectedTag: String?
 
     private let appState: AppState
     private let fileWatcher = FileWatcher()
 
     private var exclusionObserver: Any?
 
+    /// 選択中タグでフィルタされたファイルURL一覧
+    var filteredFileURLs: Set<URL>? {
+        guard let tag = selectedTag, let urls = allTags[tag] else { return nil }
+        return Set(urls)
+    }
+
+    /// ソート済みタグ名一覧
+    var sortedTagNames: [String] {
+        allTags.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
     init(appState: AppState) {
         self.appState = appState
         loadAllFolders()
+        refreshTags()
         startWatching()
         exclusionObserver = NotificationCenter.default.addObserver(
             forName: .exclusionSettingsChanged, object: nil, queue: .main
@@ -67,6 +81,29 @@ final class SidebarViewModel {
 
     func refreshAllFolders() {
         loadAllFolders()
+        refreshTags()
+    }
+
+    func refreshTags() {
+        let allFiles = rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) }
+        Task.detached {
+            let tags = TagService.collectAllTags(from: allFiles)
+            await MainActor.run { [weak self] in
+                self?.allTags = tags
+            }
+        }
+    }
+
+    func toggleTag(_ tag: String) {
+        if selectedTag == tag {
+            selectedTag = nil
+        } else {
+            selectedTag = tag
+        }
+    }
+
+    func clearTagFilter() {
+        selectedTag = nil
     }
 
     func refreshFolder(at url: URL) {

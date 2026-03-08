@@ -5,6 +5,9 @@ struct md_toolApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    handleURLScheme(url)
+                }
         }
         .defaultSize(width: 1000, height: 700)
         .windowResizability(.contentMinSize)
@@ -14,12 +17,26 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .addFolder, object: nil)
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("最近使った項目") {
+                    NotificationCenter.default.post(name: .showRecentFiles, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .saveItem) {
                 Button("保存") {
                     NotificationCenter.default.post(name: .saveFile, object: nil)
                 }
                 .keyboardShortcut("s", modifiers: .command)
+
+                Divider()
+
+                Button("タブを閉じる") {
+                    NotificationCenter.default.post(name: .closeTab, object: nil)
+                }
+                .keyboardShortcut("w", modifiers: .command)
             }
             CommandGroup(replacing: .printItem) {
                 Button("クイックオープン") {
@@ -36,6 +53,18 @@ struct md_toolApp: App {
                     NotificationCenter.default.post(name: .showIndex, object: nil)
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .saveItem) {
+                Divider()
+                Button("HTMLとして保存...") {
+                    NotificationCenter.default.post(name: .exportHTML, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+
+                Button("PDFとして保存...") {
+                    NotificationCenter.default.post(name: .exportPDF, object: nil)
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift, .option])
             }
             CommandGroup(after: .toolbar) {
                 Button("編集モード切替") {
@@ -61,6 +90,34 @@ struct md_toolApp: App {
     }
 }
 
+extension md_toolApp {
+    func handleURLScheme(_ url: URL) {
+        guard url.scheme == "mdtool",
+              url.host == "open",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let pathItem = components.queryItems?.first(where: { $0.name == "path" }),
+              let pathValue = pathItem.value else {
+            return
+        }
+
+        let fileURL = URL(fileURLWithPath: pathValue)
+        let fileManager = FileManager.default
+
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        var isDirectory: ObjCBool = false
+        fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDirectory)
+
+        if isDirectory.boolValue {
+            NotificationCenter.default.post(name: .openFolderByURL, object: fileURL)
+        } else {
+            NotificationCenter.default.post(name: .openFileByURL, object: fileURL)
+        }
+    }
+}
+
 extension Notification.Name {
     static let addFolder = Notification.Name("addFolder")
     static let quickOpen = Notification.Name("quickOpen")
@@ -71,4 +128,10 @@ extension Notification.Name {
     static let toggleSplitMode = Notification.Name("toggleSplitMode")
     static let themeChanged = Notification.Name("themeChanged")
     static let showIndex = Notification.Name("showIndex")
+    static let exportHTML = Notification.Name("exportHTML")
+    static let exportPDF = Notification.Name("exportPDF")
+    static let openFileByURL = Notification.Name("openFileByURL")
+    static let openFolderByURL = Notification.Name("openFolderByURL")
+    static let closeTab = Notification.Name("closeTab")
+    static let showRecentFiles = Notification.Name("showRecentFiles")
 }

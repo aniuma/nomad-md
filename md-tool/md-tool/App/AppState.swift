@@ -4,11 +4,21 @@ import Foundation
 final class AppState {
     var registeredFolderURLs: [URL]
     var selectedFileURL: URL?
+    var openTabs: [URL] = []
+    var activeTabURL: URL?
+    var recentFiles: [URL] = []
 
     init() {
         BookmarkManager.migrateIfNeeded()
         self.registeredFolderURLs = BookmarkManager.restoreBookmarks()
         self.selectedFileURL = BookmarkManager.restoreSelectedFile()
+        self.recentFiles = BookmarkManager.restoreRecentFiles()
+
+        // Restore tabs: if there was a previously selected file, open it as a tab
+        if let selected = selectedFileURL {
+            openTabs = [selected]
+            activeTabURL = selected
+        }
     }
 
     func addFolder(_ url: URL) {
@@ -21,6 +31,11 @@ final class AppState {
     func removeFolder(_ url: URL) {
         BookmarkManager.removeBookmark(for: url)
         registeredFolderURLs.removeAll { $0.path == url.path }
+        // Close tabs inside the removed folder
+        let tabsToClose = openTabs.filter { $0.path.hasPrefix(url.path) }
+        for tab in tabsToClose {
+            closeTab(tab)
+        }
         // Clear selected file if it was inside the removed folder
         if let selected = selectedFileURL, selected.path.hasPrefix(url.path) {
             selectedFileURL = nil
@@ -29,7 +44,55 @@ final class AppState {
     }
 
     func selectFile(_ url: URL?) {
+        guard let url = url else {
+            selectedFileURL = nil
+            activeTabURL = nil
+            BookmarkManager.saveSelectedFile(nil)
+            return
+        }
+
+        // Add to tabs if not already open
+        if !openTabs.contains(where: { $0.path == url.path }) {
+            openTabs.append(url)
+        }
+        activeTabURL = url
         selectedFileURL = url
         BookmarkManager.saveSelectedFile(url)
+
+        // Add to recent files
+        addToRecentFiles(url)
+    }
+
+    func closeTab(_ url: URL) {
+        openTabs.removeAll { $0.path == url.path }
+
+        if activeTabURL?.path == url.path {
+            // Activate the last tab, or nil if no tabs remain
+            if let lastTab = openTabs.last {
+                activeTabURL = lastTab
+                selectedFileURL = lastTab
+                BookmarkManager.saveSelectedFile(lastTab)
+            } else {
+                activeTabURL = nil
+                selectedFileURL = nil
+                BookmarkManager.saveSelectedFile(nil)
+            }
+        }
+    }
+
+    func activateTab(_ url: URL) {
+        guard openTabs.contains(where: { $0.path == url.path }) else { return }
+        activeTabURL = url
+        selectedFileURL = url
+        BookmarkManager.saveSelectedFile(url)
+    }
+
+    private func addToRecentFiles(_ url: URL) {
+        recentFiles.removeAll { $0.path == url.path }
+        recentFiles.insert(url, at: 0)
+        if recentFiles.count > 20 {
+            recentFiles = Array(recentFiles.prefix(20))
+        }
+        BookmarkManager.addRecentFile(url)
     }
 }

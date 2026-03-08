@@ -13,6 +13,7 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 - **FSEventsファイル変更自動検知** — ファイル追加/削除/リネームを自動反映（0.5秒デバウンス）
 - **除外パターン設定** — `.git`, `node_modules`等をサイドバーから除外（Cmd+, で管理）
 - **フォルダクリック時README自動表示** — フォルダ選択でREADME.mdを自動プレビュー
+- **Front Matterタグ** — YAML Front Matterからタグ抽出、サイドバーでタグフィルタ
 
 ### プレビュー
 - **Markdownプレビュー** — swift-markdownでAST→HTML変換、WKWebViewで表示
@@ -22,6 +23,8 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 - **カスタムCSSテーマ** — 任意のCSSファイルを追加適用可能
 - **TOC（目次サイドバー）** — 右サイドバーに階層ネスト目次を常時表示、スクロール追従ハイライト（Cmd+Shift+T）
 - **内部リンク遷移** — `.md`への相対リンクをクリックでアプリ内ファイル遷移
+- **YAML Front Matter** — メタデータを折りたたみ可能なテーブルで表示
+- **Callout/Admonition** — `[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!IMPORTANT]`, `[!CAUTION]`（GitHub風、折りたたみ対応）
 - **Mermaidダイアグラム** — \`\`\`mermaid コードブロックを図として描画
 - **KaTeX数式レンダリング** — `$...$`（インライン）と `$$...$$`（ブロック）
 - **脚注** — `[^id]` 参照と `[^id]:` 定義、文末に脚注セクション自動生成
@@ -42,8 +45,19 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 ### 検索・ナビゲーション
 - **クイックオープン（Cmd+P）** — ファイル名部分一致検索、矢印キーナビゲーション
 - **クイックスイッチャー見出し検索** — `#`プレフィックスで全ファイルの見出しを横断検索
-- **全文検索（Cmd+Shift+F）** — 全ファイル横断テキスト検索、300msデバウンス、最大100件
+- **全文検索（Cmd+Shift+F）** — 正規表現対応、大文字小文字区別、検索&置換
 - **索引/インデックス（Cmd+Shift+I）** — 全ファイルの見出し一覧、検索フィルタ付き
+
+### タブ・履歴
+- **タブ機能** — 複数ファイルをタブで開いて切替（Cmd+Wで閉じる）
+- **最近使った項目（Cmd+Shift+R）** — 最大20件の履歴、メニューからもアクセス可能
+
+### エクスポート
+- **HTMLエクスポート** — CSS/JSインラインのスタンドアローンHTML
+- **PDFエクスポート** — WKWebView.createPDF()でPDF生成
+
+### 連携
+- **URLスキーム** — `mdtool://open?path=/path/to/file.md` でファイル/フォルダを開く
 
 ## キーボードショートカット
 
@@ -53,9 +67,12 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 | Cmd+P | クイックオープン |
 | Cmd+Shift+F | 全文検索 |
 | Cmd+Shift+I | 索引/インデックス |
+| Cmd+Shift+R | 最近使った項目 |
 | Cmd+Shift+T | 目次の表示/非表示 |
 | Cmd+E | プレビュー/編集モード切替 |
 | Cmd+\ | 分割表示切替 |
+| Cmd+W | タブを閉じる |
+| Cmd+Shift+E | HTMLとして保存 |
 | Cmd+, | 設定 |
 
 ## 技術スタック
@@ -74,11 +91,12 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 md-tool/md-tool/
 ├── App/           AppState, md_toolApp
 ├── Models/        FileNode, BookmarkManager, ExclusionSettings
-├── Services/      FileSystemService, MarkdownRenderer, FileWatcher
+├── Services/      FileSystemService, MarkdownRenderer, FileWatcher,
+│                  TagService, ExportService
 ├── ViewModels/    SidebarViewModel, PreviewViewModel, EditorViewModel
 ├── Views/         ContentView, SidebarView, PreviewView, EditorView,
 │                  WelcomeView, QuickOpenView, SearchView, SettingsView,
-│                  IndexView
+│                  IndexView, TabBarView, RecentFilesView
 └── Resources/
 ```
 

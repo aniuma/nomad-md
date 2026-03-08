@@ -9,7 +9,8 @@ struct MarkdownRenderer {
     }
 
     func render(_ markdownString: String) -> String {
-        let (processedMarkdown, footnotes) = extractFootnotes(markdownString)
+        let (strippedMarkdown, frontMatterHTML) = extractFrontMatter(markdownString)
+        let (processedMarkdown, footnotes) = extractFootnotes(strippedMarkdown)
         let document = Document(parsing: processedMarkdown)
         var generator = HTMLGenerator(baseURL: baseURL)
         generator.visit(document)
@@ -29,10 +30,18 @@ struct MarkdownRenderer {
             html += renderFootnoteSection(footnotes)
         }
 
+        // Callout/Admonition conversion
+        html = convertCallouts(html)
+
         // Heading level warnings
         let warnings = detectHeadingLevelWarnings(generator.headings)
         if !warnings.isEmpty {
             html = renderHeadingWarnings(warnings) + html
+        }
+
+        // Prepend front matter metadata
+        if !frontMatterHTML.isEmpty {
+            html = frontMatterHTML + html
         }
 
         if generator.headings.isEmpty {
@@ -40,6 +49,125 @@ struct MarkdownRenderer {
         }
 
         return generateNestedTOC(generator.headings) + html
+    }
+
+    // MARK: - Front Matter
+
+    private func extractFrontMatter(_ markdown: String) -> (String, String) {
+        let trimmed = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("---") else { return (markdown, "") }
+
+        // Find closing ---
+        let lines = markdown.components(separatedBy: "\n")
+        guard let firstDashIndex = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else {
+            return (markdown, "")
+        }
+        let startIndex = firstDashIndex + 1
+        guard let endIndex = lines[startIndex...].firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else {
+            return (markdown, "")
+        }
+
+        let yamlLines = Array(lines[startIndex..<endIndex])
+        let remainingLines = Array(lines[(endIndex + 1)...])
+        let strippedMarkdown = remainingLines.joined(separator: "\n")
+
+        let metadata = parseSimpleYAML(yamlLines)
+        guard !metadata.isEmpty else { return (strippedMarkdown, "") }
+
+        let html = renderFrontMatterHTML(metadata)
+        return (strippedMarkdown, html)
+    }
+
+    private func parseSimpleYAML(_ lines: [String]) -> [(key: String, value: String)] {
+        var result: [(key: String, value: String)] = []
+        var currentKey: String?
+        var listItems: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
+
+            // List item under a key (e.g., "  - item")
+            if trimmed.hasPrefix("- "), currentKey != nil {
+                let item = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                listItems.append(item)
+                continue
+            }
+
+            // Flush previous list
+            if let key = currentKey, !listItems.isEmpty {
+                result.append((key: key, value: listItems.joined(separator: ", ")))
+                listItems = []
+                currentKey = nil
+            }
+
+            // Key: value pair
+            guard let colonIndex = trimmed.firstIndex(of: ":") else { continue }
+            let key = String(trimmed[trimmed.startIndex..<colonIndex]).trimmingCharacters(in: .whitespaces)
+            let rawValue = String(trimmed[trimmed.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
+
+            if rawValue.isEmpty {
+                // Value may be a list on subsequent lines
+                currentKey = key
+            } else {
+                // Strip surrounding quotes
+                var value = rawValue
+                if (value.hasPrefix("\"") && value.hasSuffix("\"")) ||
+                   (value.hasPrefix("'") && value.hasSuffix("'")) {
+                    value = String(value.dropFirst().dropLast())
+                }
+                // Inline list [a, b, c]
+                if value.hasPrefix("[") && value.hasSuffix("]") {
+                    let inner = String(value.dropFirst().dropLast())
+                    let items = inner.components(separatedBy: ",").map {
+                        $0.trimmingCharacters(in: .whitespaces)
+                          .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                    }
+                    value = items.joined(separator: ", ")
+                }
+                result.append((key: key, value: value))
+                currentKey = nil
+            }
+        }
+
+        // Flush trailing list
+        if let key = currentKey, !listItems.isEmpty {
+            result.append((key: key, value: listItems.joined(separator: ", ")))
+        }
+
+        return result
+    }
+
+    private func renderFrontMatterHTML(_ metadata: [(key: String, value: String)]) -> String {
+        var html = "<div class=\"front-matter\">\n"
+        html += "<details open>\n"
+        html += "<summary>メタデータ</summary>\n"
+        html += "<table>\n"
+        for item in metadata {
+            let escapedKey = escapeHTMLString(item.key)
+            let escapedValue = escapeHTMLString(item.value)
+            // Render comma-separated values as tags
+            if item.value.contains(",") {
+                let tags = item.value.components(separatedBy: ",").map { tag in
+                    "<span class=\"front-matter-tag\">\(escapeHTMLString(tag.trimmingCharacters(in: .whitespaces)))</span>"
+                }
+                html += "<tr><th>\(escapedKey)</th><td>\(tags.joined(separator: " "))</td></tr>\n"
+            } else {
+                html += "<tr><th>\(escapedKey)</th><td>\(escapedValue)</td></tr>\n"
+            }
+        }
+        html += "</table>\n"
+        html += "</details>\n"
+        html += "</div>\n"
+        return html
+    }
+
+    private func escapeHTMLString(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 
     private func extractFootnotes(_ markdown: String) -> (String, [FootnoteDefinition]) {
@@ -127,6 +255,89 @@ struct MarkdownRenderer {
             prevLevel = heading.level
         }
         return warnings
+    }
+
+    private func convertCallouts(_ html: String) -> String {
+        // Match <blockquote> containing [!TYPE] or [!TYPE]- pattern
+        // The HTML from MarkupWalker looks like:
+        // <blockquote>\n<p>[!NOTE]\nBody text</p>\n</blockquote>
+        // or with collapsible: <p>[!NOTE]-\nBody text</p>
+        let pattern = #"<blockquote>\s*<p>\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\](-)?(?:<br>)?\s*\n?([\s\S]*?)</p>([\s\S]*?)</blockquote>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return html
+        }
+
+        let calloutIcons: [String: String] = [
+            "NOTE": "\u{2139}\u{FE0F}",       // info
+            "TIP": "\u{1F4A1}",                // lightbulb
+            "WARNING": "\u{26A0}\u{FE0F}",     // warning
+            "IMPORTANT": "\u{2757}",           // exclamation
+            "CAUTION": "\u{1F525}"             // flame
+        ]
+
+        let calloutLabels: [String: String] = [
+            "NOTE": "Note",
+            "TIP": "Tip",
+            "WARNING": "Warning",
+            "IMPORTANT": "Important",
+            "CAUTION": "Caution"
+        ]
+
+        let mutableHTML = NSMutableString(string: html)
+        let fullRange = NSRange(location: 0, length: mutableHTML.length)
+        let matches = regex.matches(in: html, range: fullRange)
+
+        // Process matches in reverse to preserve ranges
+        for match in matches.reversed() {
+            let typeRange = match.range(at: 1)
+            let collapseRange = match.range(at: 2)
+            let firstParaRange = match.range(at: 3)
+            let restRange = match.range(at: 4)
+
+            let type = (html as NSString).substring(with: typeRange)
+            let isCollapsible = collapseRange.location != NSNotFound
+            let firstPara = (html as NSString).substring(with: firstParaRange).trimmingCharacters(in: .whitespacesAndNewlines)
+            let rest = (html as NSString).substring(with: restRange).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let typeLower = type.lowercased()
+            let icon = calloutIcons[type] ?? ""
+            let label = calloutLabels[type] ?? type
+
+            var body = ""
+            if !firstPara.isEmpty {
+                body += "<p>\(firstPara)</p>\n"
+            }
+            if !rest.isEmpty {
+                body += rest
+            }
+
+            var replacement: String
+            if isCollapsible {
+                replacement = """
+                <div class="callout callout-\(typeLower) callout-collapsible">
+                <details>
+                <summary class="callout-title"><span class="callout-icon">\(icon)</span> \(label)</summary>
+                <div class="callout-body">
+                \(body)
+                </div>
+                </details>
+                </div>
+                """
+            } else {
+                replacement = """
+                <div class="callout callout-\(typeLower)">
+                <div class="callout-title"><span class="callout-icon">\(icon)</span> \(label)</div>
+                <div class="callout-body">
+                \(body)
+                </div>
+                </div>
+                """
+            }
+
+            mutableHTML.replaceCharacters(in: match.range, with: replacement)
+        }
+
+        return mutableHTML as String
     }
 
     private func renderHeadingWarnings(_ warnings: [String]) -> String {
