@@ -36,6 +36,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3ADD456D2F5C655E00ABBED1 /* md-tool */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3ADD46FF2F5C900000ABBED1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = "md-tool";
 			sourceTree = "<group>";
 		};
@@ -50,6 +53,16 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3ADD46FF2F5C900000ABBED1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3ADD456A2F5C655E00ABBED1 /* md-tool */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		3ADD45682F5C655E00ABBED1 /* Frameworks */ = {

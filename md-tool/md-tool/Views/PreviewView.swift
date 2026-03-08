@@ -17,14 +17,14 @@ struct PreviewView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
         context.coordinator.webView = webView
-        onWebViewReady?(webView)
+        let readyCallback = onWebViewReady
+        DispatchQueue.main.async { readyCallback?(webView) }
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.baseURL = baseURL
         context.coordinator.onInternalLink = onInternalLink
-        onWebViewReady?(webView)
         let fullHTML = wrapInHTMLTemplate(htmlContent)
         webView.loadHTMLString(fullHTML, baseURL: nil)
     }

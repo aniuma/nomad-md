@@ -47,7 +47,7 @@ final class FileWatcher {
         )
 
         if let stream = streamRef {
-            FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+            FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
             FSEventStreamStart(stream)
         }
     }

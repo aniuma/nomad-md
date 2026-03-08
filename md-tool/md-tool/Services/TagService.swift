@@ -1,6 +1,6 @@
 import Foundation
 
-struct TagService {
+nonisolated struct TagService {
     /// ファイルからFront Matterのtagsフィールドを抽出する
     static func extractTags(from url: URL) -> [String] {
         guard let data = try? Data(contentsOf: url),
