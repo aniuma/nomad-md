@@ -13,6 +13,7 @@ struct SettingsView: View {
                 Picker("テーマ", selection: $selectedTheme) {
                     Text("Default").tag("default")
                     Text("GitHub").tag("github")
+                    Text("Notion").tag("notion")
                     Text("Minimal").tag("minimal")
                     Text("Technical").tag("technical")
                 }

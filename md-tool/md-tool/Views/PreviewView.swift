@@ -96,6 +96,44 @@ struct PreviewView: NSViewRepresentable {
             }
             h1 { border-bottom: 1px solid var(--border) !important; padding-bottom: 0.3em !important; }
             """
+        case "notion":
+            return """
+            :root {
+                --bg: #ffffff;
+                --text: #37352f;
+                --code-bg: #f7f6f3;
+                --border: #e9e9e7;
+                --link: #2eaadc;
+                --blockquote-border: #e9e9e7;
+                --blockquote-text: #787774;
+                --font-body: -apple-system, "SF Pro Text", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+                --font-heading: -apple-system, "SF Pro Display", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+                --font-size: 16px;
+                --line-height: 1.7;
+                --letter-spacing: 0;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #191919;
+                    --text: #e3e2df;
+                    --code-bg: #252525;
+                    --border: #363636;
+                    --link: #529cca;
+                    --blockquote-border: #363636;
+                    --blockquote-text: #9b9a97;
+                }
+            }
+            h1 { font-size: 1.875em !important; font-weight: 700 !important; margin-top: 2em !important; }
+            h2 { font-size: 1.5em !important; font-weight: 600 !important; border-bottom: none !important; padding-bottom: 0 !important; margin-top: 1.8em !important; }
+            h3 { font-size: 1.25em !important; font-weight: 600 !important; margin-top: 1.4em !important; }
+            code { font-family: "SFMono-Regular", Menlo, monospace !important; font-size: 0.85em !important; color: #eb5757 !important; background: var(--code-bg) !important; padding: 0.2em 0.4em !important; border-radius: 3px !important; }
+            @media (prefers-color-scheme: dark) { code { color: #ff7369 !important; } }
+            pre code { color: var(--text) !important; }
+            blockquote { border-left: 3px solid var(--text) !important; opacity: 0.7; }
+            hr { border-top: 1px solid var(--border) !important; margin: 1.5em 0 !important; }
+            a { text-decoration: underline !important; text-underline-offset: 2px !important; }
+            a:hover { opacity: 0.7 !important; }
+            """
         case "minimal":
             return """
             :root {
