@@ -67,6 +67,36 @@ enum OEmbedService {
         """
     }
 
+    // MARK: - PDF fallback
+
+    /// Replace YouTube iframes with thumbnail + QR code for PDF export
+    nonisolated static func convertForPDF(_ html: String) -> String {
+        let pattern = #"<div class="oembed oembed-youtube">\s*<iframe src="https://www\.youtube-nocookie\.com/embed/([\w-]+)\?[^"]*"[^>]*></iframe>\s*</div>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators) else { return html }
+
+        let mutableHTML = NSMutableString(string: html)
+        let matches = regex.matches(in: html, range: NSRange(location: 0, length: mutableHTML.length))
+
+        for match in matches.reversed() {
+            let videoIDRange = match.range(at: 1)
+            let videoID = (html as NSString).substring(with: videoIDRange)
+            let url = "https://www.youtube.com/watch?v=\(videoID)"
+            let qrURL = "https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\(url)"
+            let replacement = """
+            <div class="oembed oembed-youtube-pdf">
+            <img src="https://img.youtube.com/vi/\(videoID)/maxresdefault.jpg" alt="YouTube" class="oembed-youtube-thumb">
+            <div class="oembed-youtube-info">
+            <img src="\(qrURL)" alt="QR" class="oembed-youtube-qr">
+            <a href="\(url)">\(url)</a>
+            </div>
+            </div>
+            """
+            mutableHTML.replaceCharacters(in: match.range, with: replacement)
+        }
+
+        return mutableHTML as String
+    }
+
     // MARK: - Twitter/X
 
     private nonisolated static func twitterTweetInfo(from urlString: String) -> (user: String, statusID: String)? {

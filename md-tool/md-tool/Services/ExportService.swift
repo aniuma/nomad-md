@@ -242,7 +242,7 @@ enum ExportService {
         </head>
         <body>
         <article class="markdown-body">
-        \(body)
+        \(OEmbedService.convertForPDF(body))
         </article>
         <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
@@ -478,6 +478,38 @@ enum ExportService {
     .callout-important .callout-title { color: #a371f7; }
     .callout-caution { border-left-color: #f85149; background: rgba(248, 81, 73, 0.08); }
     .callout-caution .callout-title { color: #f85149; }
+
+    /* YouTube PDF embed */
+    .oembed-youtube-pdf {
+        margin-bottom: 1em;
+        page-break-inside: avoid;
+    }
+
+    .oembed-youtube-pdf .oembed-youtube-thumb {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+    }
+
+    .oembed-youtube-pdf .oembed-youtube-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .oembed-youtube-pdf .oembed-youtube-qr {
+        width: 60px;
+        height: 60px;
+        border-radius: 0;
+    }
+
+    .oembed-youtube-pdf a {
+        font-size: 8.5pt;
+        color: var(--text);
+        word-break: break-all;
+    }
     """
 }
 
