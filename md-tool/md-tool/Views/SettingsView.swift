@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var newPattern = ""
     @State private var selectedTheme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
     @State private var customCSSPath: String = UserDefaults.standard.string(forKey: "customCSSPath") ?? ""
+    @State private var pdfSettings = PDFExportSettings.load()
 
     var body: some View {
         Form {
@@ -99,9 +100,32 @@ struct SettingsView: View {
                 Text("サイドバーに表示しないディレクトリ名を指定します。")
                     .foregroundStyle(.secondary)
             }
+            Section {
+                Picker("用紙サイズ", selection: $pdfSettings.pageSize) {
+                    ForEach(PDFPageSize.allCases, id: \.self) { size in
+                        Text(size.displayName).tag(size)
+                    }
+                }
+                .onChange(of: pdfSettings.pageSize) { _, _ in pdfSettings.save() }
+
+                Picker("余白", selection: $pdfSettings.marginPreset) {
+                    ForEach(PDFMarginPreset.allCases, id: \.self) { preset in
+                        Text(preset.displayName).tag(preset)
+                    }
+                }
+                .onChange(of: pdfSettings.marginPreset) { _, _ in pdfSettings.save() }
+
+                Toggle("ヘッダーを表示（ファイル名）", isOn: $pdfSettings.showHeader)
+                    .onChange(of: pdfSettings.showHeader) { _, _ in pdfSettings.save() }
+
+                Toggle("フッターを表示（ページ番号）", isOn: $pdfSettings.showFooter)
+                    .onChange(of: pdfSettings.showFooter) { _, _ in pdfSettings.save() }
+            } header: {
+                Text("PDFエクスポート")
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 530)
+        .frame(width: 450, height: 680)
     }
 
     private func addPattern() {

@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import WebKit
 
 enum ViewMode {
     case preview
@@ -20,7 +19,6 @@ struct ContentView: View {
     @State private var showRecentFiles = false
     @State private var showTOC = UserDefaults.standard.object(forKey: "showTOC") as? Bool ?? true
     @State private var previewTheme = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
-    @State private var previewWebView: WKWebView?
 
     var body: some View {
         NavigationSplitView {
@@ -49,7 +47,6 @@ struct ContentView: View {
             showRecentFiles: $showRecentFiles,
             showTOC: $showTOC,
             previewTheme: $previewTheme,
-            previewWebView: $previewWebView,
             selectFile: selectFile,
             closeTab: closeTab,
             initSidebarVM: initSidebarVM
@@ -200,8 +197,7 @@ struct ContentView: View {
             baseURL: fileURL.deletingLastPathComponent(),
             showTOC: showTOC,
             theme: previewTheme,
-            onInternalLink: { url in selectFile(url) },
-            onWebViewReady: { webView in previewWebView = webView }
+            onInternalLink: { url in selectFile(url) }
         )
     }
 
@@ -235,8 +231,7 @@ struct ContentView: View {
                 baseURL: fileURL.deletingLastPathComponent(),
                 showTOC: showTOC,
                 theme: previewTheme,
-                onInternalLink: { url in selectFile(url) },
-                onWebViewReady: { webView in previewWebView = webView }
+                onInternalLink: { url in selectFile(url) }
             )
             .frame(minWidth: 300)
         }
@@ -406,7 +401,6 @@ private struct NotificationModifier: ViewModifier {
     @Binding var showRecentFiles: Bool
     @Binding var showTOC: Bool
     @Binding var previewTheme: String
-    @Binding var previewWebView: WKWebView?
     let selectFile: (URL) -> Void
     let closeTab: (URL) -> Void
     let initSidebarVM: () -> Void
@@ -501,8 +495,12 @@ private struct NotificationModifier: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .exportPDF)) { _ in
                 guard let fileURL = appState.activeTabURL ?? appState.selectedFileURL,
-                      let webView = previewWebView else { return }
-                ExportService.exportPDF(from: webView, sourceFileName: fileURL.lastPathComponent)
+                      !previewVM.htmlContent.isEmpty else { return }
+                ExportService.exportPDF(
+                    htmlBody: previewVM.htmlContent,
+                    sourceFileName: fileURL.lastPathComponent,
+                    settings: PDFExportSettings.load()
+                )
             }
             .onReceive(NotificationCenter.default.publisher(for: .openFileByURL)) { notification in
                 guard let fileURL = notification.object as? URL else { return }
