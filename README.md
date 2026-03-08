@@ -1,8 +1,8 @@
-# md-tool
+# Nomad
 
-Finder直結型 Markdown プレビューア（macOSネイティブ）
+静かな旅路で、知を照らす — Finder直結型 Markdown プレビューア（macOSネイティブ）
 
-SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイルを快適に閲覧・編集できるツール。独自データベースを持たず、Finderのフォルダ構造をそのまま活用する「No Database」設計。
+SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイルを快適に閲覧・編集できるツール。独自データベースを持たず、Finderのフォルダ構造をそのまま活用する「No Database」設計。ロックインなし、どのツールとも自由に共存。
 
 ## 機能一覧
 
@@ -32,6 +32,7 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 - **セクション単位コピー** — 見出しホバーでコピーボタン表示
 - **リンク切れ検出** — 存在しない相対リンクを赤+打ち消し線で表示
 - **レンダリングキャッシュ** — SHA256ベース、最大50件
+- **oEmbed** — YouTube/Twitter/Gist URL自動埋め込み
 
 ### 編集
 - **プレビュー/編集/分割モード** — Cmd+Eで切替、Cmd+\で分割表示
@@ -57,7 +58,9 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 - **PDFエクスポート** — WKWebView.createPDF()でPDF生成
 
 ### 連携
-- **URLスキーム** — `mdtool://open?path=/path/to/file.md` でファイル/フォルダを開く
+- **URLスキーム** — `nomad://open?path=/path/to/file.md` でファイル/フォルダを開く
+- **Quick Look Extension** — FinderでスペースキーによるMarkdownプレビュー
+- **Share Extension** — 右クリック共有からHTML/PDF変換
 
 ## キーボードショートカット
 
@@ -89,10 +92,10 @@ SwiftUI + WKWebView の2ペイン構成で、ローカルのMarkdownファイル
 
 ```
 md-tool/md-tool/
-├── App/           AppState, md_toolApp
+├── App/           AppState, NomadApp
 ├── Models/        FileNode, BookmarkManager, ExclusionSettings
 ├── Services/      FileSystemService, MarkdownRenderer, FileWatcher,
-│                  TagService, ExportService
+│                  TagService, ExportService, OEmbedService, HTMLTemplateProvider
 ├── ViewModels/    SidebarViewModel, PreviewViewModel, EditorViewModel
 ├── Views/         ContentView, SidebarView, PreviewView, EditorView,
 │                  WelcomeView, QuickOpenView, SearchView, SettingsView,

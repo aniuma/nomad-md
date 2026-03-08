@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct md_toolApp: App {
+struct NomadApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -91,9 +91,9 @@ struct md_toolApp: App {
     }
 }
 
-extension md_toolApp {
+extension NomadApp {
     func handleURLScheme(_ url: URL) {
-        guard url.scheme == "mdtool",
+        guard url.scheme == "nomad",
               url.host == "open",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let pathItem = components.queryItems?.first(where: { $0.name == "path" }),

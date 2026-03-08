@@ -7,7 +7,7 @@
 
 import Testing
 import Foundation
-@testable import md_tool
+@testable import Nomad
 
 // MARK: - FileSystemService Tests
 
@@ -243,5 +243,74 @@ struct MarkdownRendererTests {
         let html = renderer.render("> Regular quote text")
         #expect(html.contains("<blockquote>"), "HTML should contain blockquote: \(html)")
         #expect(!html.contains("<div class=\"callout"), "HTML should not contain callout div: \(html)")
+    }
+}
+
+// MARK: - OEmbedService Tests
+
+struct OEmbedServiceTests {
+    @Test func youtubeWatchURL() {
+        let html = "<p>https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-youtube"))
+        #expect(result.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
+        #expect(result.contains("youtube.com/watch?v=dQw4w9WgXcQ"))
+        #expect(!result.contains("<p>https://www.youtube.com"))
+    }
+
+    @Test func youtubeShortURL() {
+        let html = "<p>https://youtu.be/dQw4w9WgXcQ</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-youtube"))
+        #expect(result.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
+    }
+
+    @Test func twitterURL() {
+        let html = "<p>https://x.com/elonmusk/status/1234567890</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-twitter"))
+        #expect(result.contains("twitter-tweet"))
+        #expect(result.contains("@elonmusk"))
+    }
+
+    @Test func twitterLegacyURL() {
+        let html = "<p>https://twitter.com/jack/status/9876543210</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-twitter"))
+        #expect(result.contains("@jack"))
+    }
+
+    @Test func gistURL() {
+        let html = "<p>https://gist.github.com/octocat/12345abc</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-gist"))
+        #expect(result.contains("gist.github.com/octocat/12345abc.js"))
+    }
+
+    @Test func normalLinkNotConverted() {
+        let html = "<p><a href=\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\">Video</a></p>"
+        let result = OEmbedService.convert(html)
+        #expect(result == html, "Links inside <a> tags should not be converted")
+    }
+
+    @Test func nonMatchingURLNotConverted() {
+        let html = "<p>https://example.com/page</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result == html)
+    }
+
+    @Test func multipleEmbeds() {
+        let html = "<p>https://www.youtube.com/watch?v=abc12345678</p>\n<p>Some text</p>\n<p>https://x.com/user/status/111</p>"
+        let result = OEmbedService.convert(html)
+        #expect(result.contains("oembed-youtube"))
+        #expect(result.contains("oembed-twitter"))
+        #expect(result.contains("Some text"))
+    }
+
+    @Test func rendererIntegration() {
+        let renderer = MarkdownRenderer()
+        let html = renderer.render("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        #expect(html.contains("oembed-youtube"))
+        #expect(html.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
     }
 }

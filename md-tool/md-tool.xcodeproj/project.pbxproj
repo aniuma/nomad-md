@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		3ADD46242F5C6AB800ABBED1 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 3ADD45A02F5C700000ABBED1 /* Markdown */; };
+		AAAA000000000000AAAA0008 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AAAA000000000000AAAA0009 /* Markdown */; };
+		BBBB000000000000BBBB0008 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB000000000000BBBB0009 /* Markdown */; };
+		AAAA000000000000AAAA0016 /* md-tool-quicklook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BBBB000000000000BBBB0016 /* md-tool-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BBBB000000000000BBBB0001 /* md-tool-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,12 +29,43 @@
 			remoteGlobalIDString = 3ADD456A2F5C655E00ABBED1;
 			remoteInfo = "md-tool";
 		};
+		AAAA000000000000AAAA000D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3ADD45632F5C655E00ABBED1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AAAA000000000000AAAA0007;
+			remoteInfo = "md-tool-quicklook";
+		};
+		BBBB000000000000BBBB000D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3ADD45632F5C655E00ABBED1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BBBB000000000000BBBB0007;
+			remoteInfo = "md-tool-share";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AAAA000000000000AAAA000F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AAAA000000000000AAAA0016 /* md-tool-quicklook.appex in Embed Foundation Extensions */,
+				BBBB000000000000BBBB0016 /* md-tool-share.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3ADD456B2F5C655E00ABBED1 /* md-tool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "md-tool.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ADD45782F5C655F00ABBED1 /* md-toolTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "md-toolTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ADD45822F5C655F00ABBED1 /* md-toolUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "md-toolUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "md-tool-quicklook.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBBB000000000000BBBB0001 /* md-tool-share.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "md-tool-share.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -40,6 +75,20 @@
 				Info.plist,
 			);
 			target = 3ADD456A2F5C655E00ABBED1 /* md-tool */;
+		};
+		AAAA000000000000AAAA0003 /* Exceptions for "md-tool-quicklook" folder in "md-tool-quicklook" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AAAA000000000000AAAA0007 /* md-tool-quicklook */;
+		};
+		BBBB000000000000BBBB0003 /* Exceptions for "md-tool-share" folder in "md-tool-share" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BBBB000000000000BBBB0007 /* md-tool-share */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -60,6 +109,22 @@
 		3ADD45852F5C655F00ABBED1 /* md-toolUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "md-toolUITests";
+			sourceTree = "<group>";
+		};
+		AAAA000000000000AAAA0002 /* md-tool-quicklook */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AAAA000000000000AAAA0003 /* Exceptions for "md-tool-quicklook" folder in "md-tool-quicklook" target */,
+			);
+			path = "md-tool-quicklook";
+			sourceTree = "<group>";
+		};
+		BBBB000000000000BBBB0002 /* md-tool-share */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BBBB000000000000BBBB0003 /* Exceptions for "md-tool-share" folder in "md-tool-share" target */,
+			);
+			path = "md-tool-share";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -87,6 +152,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAAA000000000000AAAA0004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AAAA000000000000AAAA0008 /* Markdown in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBBB000000000000BBBB0004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBBB000000000000BBBB0008 /* Markdown in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +177,8 @@
 				3ADD456D2F5C655E00ABBED1 /* md-tool */,
 				3ADD457B2F5C655F00ABBED1 /* md-toolTests */,
 				3ADD45852F5C655F00ABBED1 /* md-toolUITests */,
+				AAAA000000000000AAAA0002 /* md-tool-quicklook */,
+				BBBB000000000000BBBB0002 /* md-tool-share */,
 				3ADD456C2F5C655E00ABBED1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -106,6 +189,8 @@
 				3ADD456B2F5C655E00ABBED1 /* md-tool.app */,
 				3ADD45782F5C655F00ABBED1 /* md-toolTests.xctest */,
 				3ADD45822F5C655F00ABBED1 /* md-toolUITests.xctest */,
+				AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */,
+				BBBB000000000000BBBB0001 /* md-tool-share.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,10 +205,13 @@
 				3ADD45672F5C655E00ABBED1 /* Sources */,
 				3ADD45682F5C655E00ABBED1 /* Frameworks */,
 				3ADD45692F5C655E00ABBED1 /* Resources */,
+				AAAA000000000000AAAA000F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AAAA000000000000AAAA000E /* PBXTargetDependency */,
+				BBBB000000000000BBBB000E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3ADD456D2F5C655E00ABBED1 /* md-tool */,
@@ -182,6 +270,52 @@
 			productReference = 3ADD45822F5C655F00ABBED1 /* md-toolUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		AAAA000000000000AAAA0007 /* md-tool-quicklook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AAAA000000000000AAAA000C /* Build configuration list for PBXNativeTarget "md-tool-quicklook" */;
+			buildPhases = (
+				AAAA000000000000AAAA0006 /* Sources */,
+				AAAA000000000000AAAA0004 /* Frameworks */,
+				AAAA000000000000AAAA0005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AAAA000000000000AAAA0002 /* md-tool-quicklook */,
+			);
+			name = "md-tool-quicklook";
+			packageProductDependencies = (
+				AAAA000000000000AAAA0009 /* Markdown */,
+			);
+			productName = "md-tool-quicklook";
+			productReference = AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BBBB000000000000BBBB0007 /* md-tool-share */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BBBB000000000000BBBB000C /* Build configuration list for PBXNativeTarget "md-tool-share" */;
+			buildPhases = (
+				BBBB000000000000BBBB0006 /* Sources */,
+				BBBB000000000000BBBB0004 /* Frameworks */,
+				BBBB000000000000BBBB0005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BBBB000000000000BBBB0002 /* md-tool-share */,
+			);
+			name = "md-tool-share";
+			packageProductDependencies = (
+				BBBB000000000000BBBB0009 /* Markdown */,
+			);
+			productName = "md-tool-share";
+			productReference = BBBB000000000000BBBB0001 /* md-tool-share.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -202,6 +336,12 @@
 					3ADD45812F5C655F00ABBED1 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = 3ADD456A2F5C655E00ABBED1;
+					};
+					AAAA000000000000AAAA0007 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					BBBB000000000000BBBB0007 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -225,6 +365,8 @@
 				3ADD456A2F5C655E00ABBED1 /* md-tool */,
 				3ADD45772F5C655F00ABBED1 /* md-toolTests */,
 				3ADD45812F5C655F00ABBED1 /* md-toolUITests */,
+				AAAA000000000000AAAA0007 /* md-tool-quicklook */,
+				BBBB000000000000BBBB0007 /* md-tool-share */,
 			);
 		};
 /* End PBXProject section */
@@ -245,6 +387,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		3ADD45802F5C655F00ABBED1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAAA000000000000AAAA0005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBBB000000000000BBBB0005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -275,6 +431,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAAA000000000000AAAA0006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBBB000000000000BBBB0006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -287,6 +457,16 @@
 			isa = PBXTargetDependency;
 			target = 3ADD456A2F5C655E00ABBED1 /* md-tool */;
 			targetProxy = 3ADD45832F5C655F00ABBED1 /* PBXContainerItemProxy */;
+		};
+		AAAA000000000000AAAA000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AAAA000000000000AAAA0007 /* md-tool-quicklook */;
+			targetProxy = AAAA000000000000AAAA000D /* PBXContainerItemProxy */;
+		};
+		BBBB000000000000BBBB000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BBBB000000000000BBBB0007 /* md-tool-share */;
+			targetProxy = BBBB000000000000BBBB000D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -431,8 +611,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-tool";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad;
+				PRODUCT_NAME = Nomad;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -463,8 +643,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-tool";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad;
+				PRODUCT_NAME = Nomad;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -485,14 +665,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-toolTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomadTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/md-tool.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/md-tool";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nomad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Nomad";
 			};
 			name = Debug;
 		};
@@ -506,14 +686,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-toolTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomadTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/md-tool.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/md-tool";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nomad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Nomad";
 			};
 			name = Release;
 		};
@@ -525,7 +705,7 @@
 				DEVELOPMENT_TEAM = T64BJU4M86;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-toolUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomadUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -544,7 +724,7 @@
 				DEVELOPMENT_TEAM = T64BJU4M86;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.susumu.md-toolUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomadUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -552,6 +732,118 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_TARGET_NAME = "md-tool";
+			};
+			name = Release;
+		};
+		AAAA000000000000AAAA000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "md-tool-quicklook/md-tool-quicklook.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64BJU4M86;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "md-tool-quicklook/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad.quicklook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AAAA000000000000AAAA000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "md-tool-quicklook/md-tool-quicklook.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64BJU4M86;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "md-tool-quicklook/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad.quicklook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BBBB000000000000BBBB000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "md-tool-share/md-tool-share.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64BJU4M86;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "md-tool-share/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BBBB000000000000BBBB000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "md-tool-share/md-tool-share.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T64BJU4M86;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "md-tool-share/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.susumu.nomad.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -594,6 +886,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AAAA000000000000AAAA000C /* Build configuration list for PBXNativeTarget "md-tool-quicklook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAAA000000000000AAAA000A /* Debug */,
+				AAAA000000000000AAAA000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BBBB000000000000BBBB000C /* Build configuration list for PBXNativeTarget "md-tool-share" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BBBB000000000000BBBB000A /* Debug */,
+				BBBB000000000000BBBB000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -609,6 +919,16 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		3ADD45A02F5C700000ABBED1 /* Markdown */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3ADD45952F5C66F900ABBED1 /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			productName = Markdown;
+		};
+		AAAA000000000000AAAA0009 /* Markdown */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3ADD45952F5C66F900ABBED1 /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			productName = Markdown;
+		};
+		BBBB000000000000BBBB0009 /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3ADD45952F5C66F900ABBED1 /* XCRemoteSwiftPackageReference "swift-markdown" */;
 			productName = Markdown;

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E3A5F"/>
+      <stop offset="100%" stop-color="#0F1B2D"/>
+    </linearGradient>
+    <linearGradient id="dune1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D4A574" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#D4A574" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="dune2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D4A574" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#D4A574" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.1"/>
+    </linearGradient>
+    <clipPath id="roundedSquare">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background: macOS superellipse approximation -->
+  <g clip-path="url(#roundedSquare)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- Subtle star dots -->
+    <circle cx="180" cy="200" r="2" fill="#FFFFFF" opacity="0.4"/>
+    <circle cx="820" cy="150" r="1.5" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="600" cy="280" r="1.8" fill="#FFFFFF" opacity="0.25"/>
+    <circle cx="300" cy="350" r="1.2" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="750" cy="380" r="1.5" fill="#FFFFFF" opacity="0.2"/>
+
+    <!-- Dune curve 1 (main, foreground) -->
+    <path d="M0 680 Q200 520 420 580 Q560 620 700 560 Q850 490 1024 540 L1024 750 Q850 700 700 720 Q550 740 420 710 Q200 670 0 740 Z"
+          fill="url(#dune1)"/>
+
+    <!-- Dune curve 2 (background, softer) -->
+    <path d="M0 760 Q250 650 500 700 Q680 730 820 670 Q920 630 1024 660 L1024 850 Q920 820 820 840 Q680 860 500 830 Q250 800 0 860 Z"
+          fill="url(#dune2)"/>
+  </g>
+</svg>

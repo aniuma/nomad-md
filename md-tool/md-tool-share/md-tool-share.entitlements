@@ -2,16 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.application-groups</key>
 	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.nomad.open</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>nomad</string>
-			</array>
-		</dict>
+		<string>group.com.susumu.nomad</string>
 	</array>
 </dict>
 </plist>
