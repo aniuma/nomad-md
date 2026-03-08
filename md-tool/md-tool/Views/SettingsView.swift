@@ -7,9 +7,25 @@ struct SettingsView: View {
     @State private var selectedTheme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
     @State private var customCSSPath: String = UserDefaults.standard.string(forKey: "customCSSPath") ?? ""
     @State private var pdfSettings = PDFExportSettings.load()
+    @State private var appearanceMode: String = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"
 
     var body: some View {
         Form {
+            Section {
+                Picker("外観", selection: $appearanceMode) {
+                    Text("システム").tag("system")
+                    Text("ライト").tag("light")
+                    Text("ダーク").tag("dark")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: appearanceMode) { _, newValue in
+                    UserDefaults.standard.set(newValue, forKey: "appearanceMode")
+                    NotificationCenter.default.post(name: .appearanceChanged, object: nil)
+                }
+            } header: {
+                Text("外観モード")
+            }
+
             Section {
                 Picker("テーマ", selection: $selectedTheme) {
                     Text("Default").tag("default")

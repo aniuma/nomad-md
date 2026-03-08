@@ -157,8 +157,8 @@ private struct QuickOpenRow: View {
                         .lineLimit(1)
                 }
             } else {
-                Image(systemName: "doc.text")
-                    .foregroundStyle(.secondary)
+                Image(systemName: "text.page")
+                    .foregroundStyle(NomadColors.sandGold.opacity(0.7))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.url.lastPathComponent)
                         .font(.system(size: 13))

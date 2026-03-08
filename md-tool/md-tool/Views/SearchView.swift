@@ -428,8 +428,8 @@ private struct SearchResultRow: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            Image(systemName: "doc.text")
-                .foregroundStyle(.secondary)
+            Image(systemName: "text.page")
+                .foregroundStyle(NomadColors.sandGold.opacity(0.7))
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {

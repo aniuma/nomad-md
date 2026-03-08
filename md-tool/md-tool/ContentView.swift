@@ -19,6 +19,15 @@ struct ContentView: View {
     @State private var showRecentFiles = false
     @State private var showTOC = UserDefaults.standard.object(forKey: "showTOC") as? Bool ?? true
     @State private var previewTheme = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
+    @State private var appearanceMode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"
+
+    private var preferredColorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "light": .light
+        case "dark": .dark
+        default: nil
+        }
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -28,6 +37,7 @@ struct ContentView: View {
         }
         .navigationTitle(windowTitle)
         .navigationSplitViewColumnWidth(min: 140, ideal: 200, max: 320)
+        .preferredColorScheme(preferredColorScheme)
         .overlay { quickOpenOverlay }
         .overlay { searchOverlay }
         .overlay { indexOverlay }
@@ -47,6 +57,7 @@ struct ContentView: View {
             showRecentFiles: $showRecentFiles,
             showTOC: $showTOC,
             previewTheme: $previewTheme,
+            appearanceMode: $appearanceMode,
             selectFile: selectFile,
             closeTab: closeTab,
             initSidebarVM: initSidebarVM
@@ -125,9 +136,9 @@ struct ContentView: View {
     private func directoryPlaceholder(_ fileURL: URL) -> some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundStyle(.tertiary)
+            Image(systemName: "compass.drawing")
+                .font(.system(size: 40, weight: .thin))
+                .foregroundStyle(NomadColors.sandGold.opacity(0.6))
             Text("「\(fileURL.lastPathComponent)」にREADME.mdがありません")
                 .font(.title3)
                 .foregroundStyle(.secondary)
@@ -316,7 +327,7 @@ struct ContentView: View {
     // MARK: - Actions
 
     private var windowTitle: String {
-        guard let url = appState.activeTabURL ?? appState.selectedFileURL else { return "md-tool" }
+        guard let url = appState.activeTabURL ?? appState.selectedFileURL else { return "Nomad" }
         let name = url.lastPathComponent
         let dirty = (viewMode == .edit || viewMode == .split) && editorVM.isDirty
         return dirty ? "● \(name)" : name
@@ -410,6 +421,7 @@ private struct NotificationModifier: ViewModifier {
     @Binding var showRecentFiles: Bool
     @Binding var showTOC: Bool
     @Binding var previewTheme: String
+    @Binding var appearanceMode: String
     let selectFile: (URL) -> Void
     let closeTab: (URL) -> Void
     let initSidebarVM: () -> Void
@@ -519,6 +531,9 @@ private struct NotificationModifier: ViewModifier {
                     sidebarVM?.addFolderByURL(parentFolder)
                 }
                 selectFile(fileURL)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .appearanceChanged)) { _ in
+                appearanceMode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"
             }
             .onReceive(NotificationCenter.default.publisher(for: .openFolderByURL)) { notification in
                 guard let folderURL = notification.object as? URL else { return }

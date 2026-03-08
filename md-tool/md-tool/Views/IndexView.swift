@@ -121,7 +121,7 @@ private struct IndexRow: View {
         HStack(spacing: 6) {
             Text("H\(entry.level)")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NomadColors.sandGold)
                 .frame(width: 24)
             Text(entry.heading)
                 .font(.system(size: 13))

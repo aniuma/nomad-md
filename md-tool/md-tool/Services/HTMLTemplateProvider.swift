@@ -311,7 +311,7 @@ enum HTMLTemplateProvider {
         width: 220px;
         max-height: calc(100vh - 32px);
         overflow-y: auto;
-        border-left: 2px solid var(--border);
+        border-left: 2px solid #D4A574;
         padding-left: 10px;
         scrollbar-width: none;
     }
@@ -324,8 +324,8 @@ enum HTMLTemplateProvider {
         font-weight: 600;
         font-size: 11px;
         margin-bottom: 6px;
-        color: var(--text);
-        opacity: 0.5;
+        color: #D4A574;
+        opacity: 0.7;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -365,7 +365,7 @@ enum HTMLTemplateProvider {
 
     .toc-sidebar a.active {
         opacity: 1;
-        color: var(--link);
+        color: #D4A574;
         font-weight: 600;
     }
 

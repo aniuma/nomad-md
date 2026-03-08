@@ -39,8 +39,8 @@ struct RecentFilesView: View {
                 ScrollViewReader { proxy in
                     List(Array(recentFiles.enumerated()), id: \.element) { index, url in
                         HStack {
-                            Image(systemName: "doc.text")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: "text.page")
+                                .foregroundStyle(NomadColors.sandGold.opacity(0.7))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(url.lastPathComponent)
                                     .font(.system(size: 13))

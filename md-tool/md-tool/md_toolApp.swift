@@ -135,4 +135,5 @@ extension Notification.Name {
     static let openFolderByURL = Notification.Name("openFolderByURL")
     static let closeTab = Notification.Name("closeTab")
     static let showRecentFiles = Notification.Name("showRecentFiles")
+    static let appearanceChanged = Notification.Name("appearanceChanged")
 }

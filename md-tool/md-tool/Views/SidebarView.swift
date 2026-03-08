@@ -54,7 +54,7 @@ struct SidebarView: View {
                                             .opacity(isFiltered ? 0.3 : 1.0)
                                     } icon: {
                                         Image(systemName: node.isDirectory ? "folder.fill" : "doc.text")
-                                            .foregroundStyle(node.isDirectory ? .orange : .secondary)
+                                            .foregroundStyle(node.isDirectory ? NomadColors.sandGold : .secondary)
                                             .opacity(isFiltered ? 0.3 : 1.0)
                                     }
                                     .tag(node.url)

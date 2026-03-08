@@ -44,7 +44,7 @@ private struct TabItemView: View {
         HStack(spacing: 4) {
             if isDirty {
                 Circle()
-                    .fill(Color.secondary)
+                    .fill(NomadColors.sandGold)
                     .frame(width: 6, height: 6)
             }
             Text(url.lastPathComponent)
