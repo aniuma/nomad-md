@@ -9,8 +9,8 @@
 /* Begin PBXBuildFile section */
 		3ADD46242F5C6AB800ABBED1 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 3ADD45A02F5C700000ABBED1 /* Markdown */; };
 		AAAA000000000000AAAA0008 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AAAA000000000000AAAA0009 /* Markdown */; };
-		BBBB000000000000BBBB0008 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB000000000000BBBB0009 /* Markdown */; };
 		AAAA000000000000AAAA0016 /* md-tool-quicklook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BBBB000000000000BBBB0008 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB000000000000BBBB0009 /* Markdown */; };
 		BBBB000000000000BBBB0016 /* md-tool-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BBBB000000000000BBBB0001 /* md-tool-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -61,7 +61,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		3ADD456B2F5C655E00ABBED1 /* md-tool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "md-tool.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3ADD456B2F5C655E00ABBED1 /* Nomad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nomad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ADD45782F5C655F00ABBED1 /* md-toolTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "md-toolTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ADD45822F5C655F00ABBED1 /* md-toolUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "md-toolUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "md-tool-quicklook.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -186,7 +186,7 @@
 		3ADD456C2F5C655E00ABBED1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3ADD456B2F5C655E00ABBED1 /* md-tool.app */,
+				3ADD456B2F5C655E00ABBED1 /* Nomad.app */,
 				3ADD45782F5C655F00ABBED1 /* md-toolTests.xctest */,
 				3ADD45822F5C655F00ABBED1 /* md-toolUITests.xctest */,
 				AAAA000000000000AAAA0001 /* md-tool-quicklook.appex */,
@@ -221,7 +221,7 @@
 				3ADD45A02F5C700000ABBED1 /* Markdown */,
 			);
 			productName = "md-tool";
-			productReference = 3ADD456B2F5C655E00ABBED1 /* md-tool.app */;
+			productReference = 3ADD456B2F5C655E00ABBED1 /* Nomad.app */;
 			productType = "com.apple.product-type.application";
 		};
 		3ADD45772F5C655F00ABBED1 /* md-toolTests */ = {

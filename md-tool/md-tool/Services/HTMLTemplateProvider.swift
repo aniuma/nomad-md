@@ -669,36 +669,18 @@ enum HTMLTemplateProvider {
 
     .oembed-youtube {
         position: relative;
-        display: inline-block;
-        max-width: 100%;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
     }
 
-    .oembed-youtube-link {
-        position: relative;
-        display: block;
-    }
-
-    .oembed-youtube-link img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-    }
-
-    .oembed-youtube-play {
+    .oembed-youtube iframe {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 68px;
-        height: 48px;
-        opacity: 0.8;
-        transition: opacity 0.2s;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    }
-
-    .oembed-youtube-link:hover .oembed-youtube-play {
-        opacity: 1;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
     }
 
     .oembed-twitter {

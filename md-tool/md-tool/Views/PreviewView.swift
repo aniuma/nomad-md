@@ -27,15 +27,52 @@ struct PreviewView: NSViewRepresentable {
         context.coordinator.baseURL = baseURL
         context.coordinator.onInternalLink = onInternalLink
         let fullHTML = wrapInHTMLTemplate(htmlContent)
-        webView.loadHTMLString(fullHTML, baseURL: baseURL ?? URL(string: "https://localhost/"))
+
+        let server = LocalHTTPServer.shared
+        server.start()
+        server.updateContent(html: fullHTML, baseDirectory: baseURL)
+
+        if let serverURL = server.previewURL {
+            // Reload from server to get proper Referer headers (fixes YouTube embed)
+            let currentURL = webView.url
+            if currentURL == serverURL {
+                // Same URL — force reload to pick up new content
+                webView.reload()
+            } else {
+                webView.load(URLRequest(url: serverURL))
+            }
+        } else {
+            // Fallback: direct HTML loading
+            webView.loadHTMLString(fullHTML, baseURL: baseURL ?? URL(string: "https://localhost/"))
+        }
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
+    private func rewriteLocalFileURLs(_ html: String) -> String {
+        let serverPort = LocalHTTPServer.shared.port
+        guard serverPort > 0 else { return html }
+        // Rewrite file:// URLs to localhost server
+        let pattern = #"(src\s*=\s*")(file://[^"]+)(")"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return html }
+        let mutable = NSMutableString(string: html)
+        let matches = regex.matches(in: html, range: NSRange(location: 0, length: mutable.length))
+        for match in matches.reversed() {
+            let fileURLRange = match.range(at: 2)
+            let fileURLString = (html as NSString).substring(with: fileURLRange)
+            if let fileURL = URL(string: fileURLString) {
+                let serverPath = "http://localhost:\(serverPort)/file\(fileURL.path)"
+                mutable.replaceCharacters(in: fileURLRange, with: serverPath)
+            }
+        }
+        return mutable as String
+    }
+
     private func wrapInHTMLTemplate(_ body: String) -> String {
-        """
+        let processedBody = rewriteLocalFileURLs(body)
+        return """
         <!DOCTYPE html>
         <html>
         <head>
@@ -49,7 +86,7 @@ struct PreviewView: NSViewRepresentable {
         </head>
         <body class="\(showTOC ? "" : "toc-hidden")">
         <article class="markdown-body">
-        \(body)
+        \(processedBody)
         </article>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
         <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -192,6 +229,12 @@ struct PreviewView: NSViewRepresentable {
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard navigationAction.navigationType == .linkActivated,
                   let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            // Allow localhost server navigation (for LocalHTTPServer)
+            if url.host == "localhost" || url.host == "127.0.0.1" {
                 decisionHandler(.allow)
                 return
             }

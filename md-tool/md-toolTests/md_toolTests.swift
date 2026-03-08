@@ -253,8 +253,7 @@ struct OEmbedServiceTests {
         let html = "<p>https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>"
         let result = OEmbedService.convert(html)
         #expect(result.contains("oembed-youtube"))
-        #expect(result.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
-        #expect(result.contains("youtube.com/watch?v=dQw4w9WgXcQ"))
+        #expect(result.contains("youtube-nocookie.com/embed/dQw4w9WgXcQ"))
         #expect(!result.contains("<p>https://www.youtube.com"))
     }
 
@@ -262,7 +261,7 @@ struct OEmbedServiceTests {
         let html = "<p>https://youtu.be/dQw4w9WgXcQ</p>"
         let result = OEmbedService.convert(html)
         #expect(result.contains("oembed-youtube"))
-        #expect(result.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
+        #expect(result.contains("youtube-nocookie.com/embed/dQw4w9WgXcQ"))
     }
 
     @Test func twitterURL() {
@@ -311,6 +310,6 @@ struct OEmbedServiceTests {
         let renderer = MarkdownRenderer()
         let html = renderer.render("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         #expect(html.contains("oembed-youtube"))
-        #expect(html.contains("img.youtube.com/vi/dQw4w9WgXcQ"))
+        #expect(html.contains("youtube-nocookie.com/embed/dQw4w9WgXcQ"))
     }
 }
