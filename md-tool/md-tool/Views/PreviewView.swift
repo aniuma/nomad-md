@@ -249,19 +249,19 @@ struct PreviewView: NSViewRepresentable {
     h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-heading);
         margin-top: 1.5em;
-        margin-bottom: 0.5em;
+        margin-bottom: 0.8em;
         letter-spacing: -0.01em;
         line-height: 1.3;
     }
 
-    h1 { font-size: 1.75em; font-weight: 700; border-bottom: none; padding-bottom: 0; margin-bottom: 0.8em; }
-    h2 { font-size: 1.35em; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
-    h3 { font-size: 1.15em; font-weight: 600; }
-    h4 { font-size: 1em; font-weight: 600; }
+    h1 { font-size: 1.875em; font-weight: 700; border-bottom: none; padding-bottom: 0; margin-top: 1.08em; }
+    h2 { font-size: 1.5em; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; margin-top: 1.1em; }
+    h3 { font-size: 1.25em; font-weight: 600; margin-top: 1em; }
+    h4 { font-size: 1em; font-weight: 600; margin-top: 1em; }
 
     h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
 
-    p { margin-bottom: 1.2em; }
+    p { margin-bottom: 1em; }
 
     a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -290,7 +290,7 @@ struct PreviewView: NSViewRepresentable {
     }
 
     blockquote {
-        margin-bottom: 1em;
+        margin-bottom: 0.8em;
         padding: 0.25em 1.2em;
         border-left: 3px solid var(--blockquote-border);
         color: var(--blockquote-text);
@@ -300,12 +300,12 @@ struct PreviewView: NSViewRepresentable {
     blockquote p:last-child { margin-bottom: 0; }
 
     ul, ol {
-        margin-bottom: 1em;
-        padding-left: 2em;
+        margin-bottom: 0.6em;
+        padding-left: 1.7em;
     }
 
-    li { margin-bottom: 0.35em; line-height: 1.7; }
-    li > ul, li > ol { margin-bottom: 0; }
+    li { margin-bottom: 0.05em; line-height: 1.6; }
+    li > ul, li > ol { margin-bottom: 0; margin-top: 0.05em; }
 
     hr {
         margin: 2em 0;
