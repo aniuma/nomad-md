@@ -51,7 +51,8 @@ final class PreviewViewModel {
             return
         }
         let renderer = MarkdownRenderer(baseURL: baseURL)
-        let result = renderer.render(text)
+        let (body, readingTime) = renderer.renderWithReadingTime(text)
+        let result = injectReadingTime(readingTime, into: body)
         storeCache(key: key, value: result)
         htmlContent = result
     }
@@ -68,9 +69,29 @@ final class PreviewViewModel {
             return
         }
         let renderer = MarkdownRenderer(baseURL: baseURL)
-        let result = renderer.render(content)
+        let (body, readingTime) = renderer.renderWithReadingTime(content)
+        let result = injectReadingTime(readingTime, into: body)
         storeCache(key: key, value: result)
         htmlContent = result
+    }
+
+    /// 読了時間バッジをHTMLの本文先頭（TOC・Front Matterの後）に挿入する
+    private func injectReadingTime(_ readingTime: ReadingTime, into html: String) -> String {
+        let badge = "<p class=\"reading-time\">\(readingTime.displayText)</p>\n"
+        // TOCや見出し警告などの後、最初の<p>/<h1-6>/<div class="front-matter">の前に挿入
+        // 戦略: </nav>（TOC終端）があればその直後、なければ先頭に追加
+        if let range = html.range(of: "</nav>\n") {
+            let insertPos = range.upperBound
+            return String(html[html.startIndex..<insertPos]) + badge + String(html[insertPos...])
+        }
+        // front-matterがあればその後（</details>\n</div>\n でブロック終端を検出）
+        if let fmRange = html.range(of: "<div class=\"front-matter\">") {
+            if let closeRange = html.range(of: "</details>\n</div>\n", range: fmRange.upperBound..<html.endIndex) {
+                let insertPos = closeRange.upperBound
+                return String(html[html.startIndex..<insertPos]) + badge + String(html[insertPos...])
+            }
+        }
+        return badge + html
     }
 
     private func cacheKey(_ content: String, baseURL: URL) -> String {

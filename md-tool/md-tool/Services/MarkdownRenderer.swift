@@ -8,6 +8,12 @@ struct MarkdownRenderer {
         self.baseURL = baseURL
     }
 
+    func renderWithReadingTime(_ markdownString: String) -> (html: String, readingTime: ReadingTime) {
+        let readingTime = ReadingTimeCalculator.calculate(markdown: markdownString)
+        let html = render(markdownString)
+        return (html, readingTime)
+    }
+
     func render(_ markdownString: String) -> String {
         let (strippedMarkdown, frontMatterHTML) = extractFrontMatter(markdownString)
         let (processedMarkdown, footnotes) = extractFootnotes(strippedMarkdown)
@@ -351,6 +357,106 @@ struct MarkdownRenderer {
         }
         html += "</ul></details></div>\n"
         return html
+    }
+}
+
+struct ReadingTime {
+    let minutes: Int
+    let wordCount: Int
+    let charCount: Int
+
+    /// 表示文字列。日本語主体なら文字数、英語主体なら単語数を使う。
+    var displayText: String {
+        let min = max(1, minutes)
+        if charCount > wordCount * 3 {
+            // 日本語主体
+            let formatted = charCount >= 1000
+                ? "\(charCount / 1000),\(String(format: "%03d", charCount % 1000))"
+                : "\(charCount)"
+            return "約\(min)分 · \(formatted)文字"
+        } else {
+            // 英語主体
+            let formatted = wordCount >= 1000
+                ? "\(wordCount / 1000),\(String(format: "%03d", wordCount % 1000))"
+                : "\(wordCount)"
+            return "About \(min) min · \(formatted) words"
+        }
+    }
+}
+
+// MARK: - Reading Time Calculator
+
+enum ReadingTimeCalculator {
+    /// Markdown文字列から読了時間を計算する。Front MatterとCode blockを除外。
+    nonisolated static func calculate(markdown: String) -> ReadingTime {
+        let stripped = stripFrontMatter(markdown)
+        let (noCode, codeChars) = stripCodeBlocks(stripped)
+
+        // 通常本文の日本語文字数と英語単語数を計測
+        let jaChars = countJapaneseChars(noCode)
+        let enWords = countEnglishWords(noCode)
+
+        // コードブロックは1/5の重み（読み飛ばしやすい）
+        let codeWordEquivalent = codeChars / 5
+
+        // 読了時間計算（日本語: 550文字/分, 英語: 220語/分）
+        let jaMinutes = Double(jaChars) / 550.0
+        let enMinutes = Double(enWords + codeWordEquivalent) / 220.0
+        let totalMinutes = Int((jaMinutes + enMinutes).rounded(.up))
+
+        return ReadingTime(
+            minutes: max(1, totalMinutes),
+            wordCount: enWords,
+            charCount: jaChars
+        )
+    }
+
+    nonisolated private static func stripFrontMatter(_ markdown: String) -> String {
+        let trimmed = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("---") else { return markdown }
+        let lines = markdown.components(separatedBy: "\n")
+        guard let first = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }),
+              let end = lines[(first + 1)...].firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else {
+            return markdown
+        }
+        return lines[(end + 1)...].joined(separator: "\n")
+    }
+
+    /// コードブロック（```...```）を除去し、本文とコードの文字数を返す
+    nonisolated private static func stripCodeBlocks(_ markdown: String) -> (String, Int) {
+        var result = ""
+        var codeChars = 0
+        var inCode = false
+        for line in markdown.components(separatedBy: "\n") {
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                inCode.toggle()
+                continue
+            }
+            if inCode {
+                codeChars += line.count
+            } else {
+                result += line + "\n"
+            }
+        }
+        return (result, codeChars)
+    }
+
+    nonisolated private static func countJapaneseChars(_ text: String) -> Int {
+        text.unicodeScalars.filter { scalar in
+            // CJK統合漢字、ひらがな、カタカナ、その他CJK
+            (0x3040...0x309F).contains(scalar.value) ||   // ひらがな
+            (0x30A0...0x30FF).contains(scalar.value) ||   // カタカナ
+            (0x4E00...0x9FFF).contains(scalar.value) ||   // CJK統合漢字
+            (0x3400...0x4DBF).contains(scalar.value) ||   // CJK拡張A
+            (0xF900...0xFAFF).contains(scalar.value)      // CJK互換漢字
+        }.count
+    }
+
+    nonisolated private static func countEnglishWords(_ text: String) -> Int {
+        // 連続するアルファベット文字列を単語として数える
+        let pattern = try? NSRegularExpression(pattern: "[a-zA-Z]+")
+        let range = NSRange(text.startIndex..., in: text)
+        return pattern?.numberOfMatches(in: text, range: range) ?? 0
     }
 }
 

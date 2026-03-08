@@ -509,6 +509,55 @@ enum HTMLTemplateProvider {
         color: var(--link);
     }
 
+    /* Section collapse toggle button */
+    .section-toggle-btn {
+        opacity: 0;
+        transition: opacity 0.2s, transform 0.2s;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-right: 4px;
+        vertical-align: middle;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        color: #D4A574;
+        font-size: 0.6em;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .section-toggle-btn svg {
+        width: 10px;
+        height: 10px;
+        transition: transform 0.2s;
+        fill: #D4A574;
+        opacity: 0.7;
+    }
+
+    h1:hover .section-toggle-btn,
+    h2:hover .section-toggle-btn,
+    h3:hover .section-toggle-btn,
+    h4:hover .section-toggle-btn,
+    h5:hover .section-toggle-btn,
+    h6:hover .section-toggle-btn {
+        opacity: 1;
+    }
+
+    .section-toggle-btn:hover svg {
+        opacity: 1;
+    }
+
+    .section-toggle-btn.collapsed svg {
+        transform: rotate(-90deg);
+    }
+
+    .section-content-collapsed {
+        display: none !important;
+    }
+
     .broken-link {
         color: #dc3545 !important;
         text-decoration: line-through wavy !important;
@@ -713,6 +762,15 @@ enum HTMLTemplateProvider {
     .oembed-gist {
         overflow-x: auto;
     }
+
+    /* Reading time badge */
+    .reading-time {
+        font-size: 0.78em;
+        color: var(--text);
+        opacity: 0.38;
+        margin-bottom: 1.6em;
+        letter-spacing: 0.01em;
+    }
     """
 
     // MARK: - Custom CSS
@@ -731,6 +789,8 @@ enum HTMLTemplateProvider {
     static func exportHTMLTemplate(_ body: String, theme: String, showTOC: Bool) -> String {
         let exportCSS = """
         .section-copy-btn { display: none !important; }
+        .section-toggle-btn { display: none !important; }
+        .section-content-collapsed { display: block !important; }
         .toc-sidebar { display: none !important; }
         .markdown-body { margin-right: 0 !important; }
         """
@@ -778,6 +838,8 @@ enum HTMLTemplateProvider {
         .toc-sidebar { display: none !important; }
         .markdown-body { margin-right: 0 !important; }
         .section-copy-btn { display: none !important; }
+        .section-toggle-btn { display: none !important; }
+        .section-content-collapsed { display: block !important; }
         .heading-warnings { display: none !important; }
         </style>
         </head>

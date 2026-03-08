@@ -137,7 +137,10 @@ struct PreviewView: NSViewRepresentable {
                 }
                 var headingText = '';
                 for (var i = 0; i < h.childNodes.length; i++) {
-                    if (h.childNodes[i] !== btn) headingText += h.childNodes[i].textContent;
+                    var node = h.childNodes[i];
+                    if (node === btn) continue;
+                    if (node.nodeType === 1 && (node.classList.contains('section-copy-btn') || node.classList.contains('section-toggle-btn'))) continue;
+                    headingText += node.textContent;
                 }
                 var text = headingText.trim() + '\\n\\n' + content.join('\\n');
                 window.webkit.messageHandlers.copySection.postMessage(text.trim());
@@ -172,6 +175,70 @@ struct PreviewView: NSViewRepresentable {
         });
     })();
 
+    // Section collapse toggle
+    (function() {
+        var toggleSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><polygon points="5,7 1,3 9,3"/></svg>';
+        var headings = Array.from(document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6'));
+
+        headings.forEach(function(h) {
+            var btn = document.createElement('button');
+            btn.className = 'section-toggle-btn';
+            btn.innerHTML = toggleSvg;
+            btn.title = 'セクションを折りたたむ';
+            btn.setAttribute('aria-expanded', 'true');
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var isCollapsed = btn.classList.contains('collapsed');
+                var hLevel = parseInt(h.tagName.charAt(1));
+                var el = h.nextElementSibling;
+                while (el) {
+                    if (/^H[1-6]$/.test(el.tagName) && parseInt(el.tagName.charAt(1)) <= hLevel) break;
+                    if (isCollapsed) {
+                        el.classList.remove('section-content-collapsed');
+                    } else {
+                        el.classList.add('section-content-collapsed');
+                    }
+                    el = el.nextElementSibling;
+                }
+                if (isCollapsed) {
+                    btn.classList.remove('collapsed');
+                    btn.setAttribute('aria-expanded', 'true');
+                    btn.title = 'セクションを折りたたむ';
+                } else {
+                    btn.classList.add('collapsed');
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.title = 'セクションを展開する';
+                }
+            });
+            h.insertBefore(btn, h.firstChild);
+        });
+
+        // Expose expand function for TOC links
+        window.expandHeading = function(targetId) {
+            var target = document.getElementById(targetId);
+            if (!target) return;
+            // Walk up: if any ancestor section is collapsed, expand it
+            // Walk forward from headings that contain this element
+            var allHeadings = Array.from(document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6'));
+            allHeadings.forEach(function(h) {
+                var btn = h.querySelector('.section-toggle-btn');
+                if (!btn || !btn.classList.contains('collapsed')) return;
+                var hLevel = parseInt(h.tagName.charAt(1));
+                var el = h.nextElementSibling;
+                var found = false;
+                while (el) {
+                    if (/^H[1-6]$/.test(el.tagName) && parseInt(el.tagName.charAt(1)) <= hLevel) break;
+                    if (el === target || el.contains(target)) { found = true; break; }
+                    el = el.nextElementSibling;
+                }
+                if (found) {
+                    btn.click();
+                }
+            });
+        };
+    })();
+
     // TOC scroll tracking
     (function() {
         var headings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
@@ -187,6 +254,11 @@ struct PreviewView: NSViewRepresentable {
                 var targetId = this.getAttribute('href').substring(1);
                 var target = document.getElementById(targetId);
                 if (!target) return;
+
+                // Auto-expand if section is collapsed
+                if (typeof window.expandHeading === 'function') {
+                    window.expandHeading(targetId);
+                }
 
                 clickScrolling = true;
                 setActive(targetId);

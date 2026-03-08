@@ -286,6 +286,7 @@ struct ContentView: View {
             modalOverlay(onDismiss: { showIndex = false }) {
                 IndexView(
                     files: vm.rootNodes.flatMap { FileSystemService.collectAllMarkdownFiles(in: $0) },
+                    rootFolders: appState.registeredFolderURLs,
                     onSelect: { url in selectFile(url) },
                     onDismiss: { withAnimation(.easeOut(duration: 0.15)) { showIndex = false } }
                 )
