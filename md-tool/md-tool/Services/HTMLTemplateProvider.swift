@@ -281,6 +281,29 @@ enum HTMLTemplateProvider {
         margin-right: 0.5em;
     }
 
+    ul.task-list, ol.task-list {
+        list-style: none;
+        padding-left: 1.5em;
+    }
+
+    li.task-list-item {
+        position: relative;
+    }
+
+    li.task-list-item input[type="checkbox"] {
+        margin-right: 0.5em;
+        cursor: pointer;
+        width: 1em;
+        height: 1em;
+    }
+
+    li.task-list-item.checked > span.task-text {
+        text-decoration: line-through;
+        opacity: 0.6;
+    }
+
+    li.task-list-item > span.task-text > p { display: inline; margin: 0; }
+
     .toc-sidebar {
         position: fixed;
         top: 16px;

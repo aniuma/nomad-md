@@ -442,23 +442,27 @@ struct HTMLGenerator: MarkupWalker {
     // MARK: - Lists
 
     mutating func visitUnorderedList(_ unorderedList: UnorderedList) -> () {
-        html += "<ul>\n"
+        let hasTaskItems = unorderedList.listItems.contains { $0.checkbox != nil }
+        html += hasTaskItems ? "<ul class=\"task-list\">\n" : "<ul>\n"
         descendInto(unorderedList)
         html += "</ul>\n"
     }
 
     mutating func visitOrderedList(_ orderedList: OrderedList) -> () {
-        html += "<ol>\n"
+        let hasTaskItems = orderedList.listItems.contains { $0.checkbox != nil }
+        html += hasTaskItems ? "<ol class=\"task-list\">\n" : "<ol>\n"
         descendInto(orderedList)
         html += "</ol>\n"
     }
 
     mutating func visitListItem(_ listItem: ListItem) -> () {
         if let checkbox = listItem.checkbox {
-            let checked = checkbox == .checked ? " checked disabled" : " disabled"
-            html += "<li><input type=\"checkbox\"\(checked)> "
+            let checked = checkbox == .checked ? " checked" : ""
+            let checkedClass = checkbox == .checked ? " checked" : ""
+            let line = listItem.range?.lowerBound.line ?? 0
+            html += "<li class=\"task-list-item\(checkedClass)\"><input type=\"checkbox\"\(checked) data-line=\"\(line)\"><span class=\"task-text\">"
             descendInto(listItem)
-            html += "</li>\n"
+            html += "</span></li>\n"
         } else {
             html += "<li>"
             descendInto(listItem)

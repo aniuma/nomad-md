@@ -387,6 +387,17 @@ enum ExportService {
         margin-right: 0.5em;
     }
 
+    ul.task-list, ol.task-list {
+        list-style: none;
+        padding-left: 1.5em;
+    }
+
+    li.task-list-item {
+        position: relative;
+    }
+
+    li.task-list-item > span.task-text > p { display: inline; margin: 0; }
+
     /* Hide non-print elements */
     .toc-sidebar,
     .section-copy-btn,
@@ -547,46 +558,122 @@ fileprivate final class PDFNavigationDelegate: NSObject, WKNavigationDelegate {
         let breakpointJS = """
         (function() {
             var contentHeight = \(contentAreaHeight);
-            var blocks = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, pre, table, blockquote, ul, ol, hr, .callout, .mermaid, .katex-display, img');
             var breakPoints = [0];
             var currentPageEnd = contentHeight;
 
-            for (var i = 0; i < blocks.length; i++) {
-                var el = blocks[i];
-                var rect = el.getBoundingClientRect();
+            function addBreak(y) {
+                if (y > breakPoints[breakPoints.length - 1]) {
+                    breakPoints.push(y);
+                    currentPageEnd = y + contentHeight;
+                }
+            }
+
+            function getLineHeight(el) {
+                var style = window.getComputedStyle(el);
+                var fs = parseFloat(style.fontSize);
+                var lh = style.lineHeight;
+                if (lh === 'normal') return fs * 1.5;
+                if (lh.endsWith('px')) return parseFloat(lh);
+                var v = parseFloat(lh);
+                return (!isNaN(v) && v > 0) ? fs * v : fs * 1.5;
+            }
+
+            function splitTallElement(el, rect) {
                 var tagName = el.tagName.toLowerCase();
-                var isHeading = /^h[1-6]$/.test(tagName);
 
-                // For headings: break before the heading (so it starts on the next page)
-                // For other blocks: break after the block completes
-                var breakAt = isHeading ? rect.top : rect.bottom;
-
-                if (breakAt > currentPageEnd) {
-                    // This element exceeds current page — find best break point
-                    var bestBreak = isHeading ? rect.top : currentPageEnd;
-
-                    // For non-headings that overflow, try to break before this element
-                    if (!isHeading && rect.top > breakPoints[breakPoints.length - 1]) {
-                        bestBreak = rect.top;
+                if (tagName === 'table') {
+                    var rows = el.querySelectorAll(':scope > tbody > tr, :scope > thead > tr, :scope > tr');
+                    for (var r = 0; r < rows.length; r++) {
+                        var rowRect = rows[r].getBoundingClientRect();
+                        if (rowRect.bottom > currentPageEnd) {
+                            addBreak(rowRect.top);
+                        }
                     }
-
-                    breakPoints.push(bestBreak);
-                    currentPageEnd = bestBreak + contentHeight;
-
-                    // If the element still exceeds the new page, handle tall elements
+                } else if (tagName === 'pre') {
+                    var lineH = getLineHeight(el);
+                    var nextPageEnd = currentPageEnd;
+                    while (nextPageEnd < rect.bottom) {
+                        var nearestLine = rect.top + Math.floor((nextPageEnd - rect.top) / lineH) * lineH;
+                        if (nearestLine > rect.top) { addBreak(nearestLine); }
+                        nextPageEnd = nearestLine + contentHeight;
+                    }
+                } else if (tagName === 'p') {
+                    var lineH = getLineHeight(el);
+                    var nextPageEnd = currentPageEnd;
+                    while (nextPageEnd < rect.bottom) {
+                        var nearestLine = rect.top + Math.floor((nextPageEnd - rect.top) / lineH) * lineH;
+                        if (nearestLine > rect.top) { addBreak(nearestLine); }
+                        nextPageEnd = nearestLine + contentHeight;
+                    }
+                } else if (tagName === 'ul' || tagName === 'ol') {
+                    var items = el.querySelectorAll(':scope > li');
+                    for (var li = 0; li < items.length; li++) {
+                        var liRect = items[li].getBoundingClientRect();
+                        if (liRect.bottom > currentPageEnd) {
+                            addBreak(liRect.top);
+                        }
+                    }
+                } else if (tagName === 'blockquote' || el.classList.contains('callout')) {
+                    var children = el.children;
+                    for (var c = 0; c < children.length; c++) {
+                        var childRect = children[c].getBoundingClientRect();
+                        if (childRect.bottom > currentPageEnd) {
+                            addBreak(childRect.top);
+                        }
+                    }
+                } else {
                     while (rect.bottom > currentPageEnd) {
-                        breakPoints.push(currentPageEnd);
-                        currentPageEnd += contentHeight;
+                        addBreak(currentPageEnd);
                     }
                 }
             }
 
-            // Final break at document bottom
+            var blocks = document.querySelectorAll(
+                'h1, h2, h3, h4, h5, h6, p, pre, table, blockquote, ul, ol, hr, .callout, .mermaid, .katex-display, img'
+            );
+
+            for (var i = 0; i < blocks.length; i++) {
+                var el = blocks[i];
+                var rect = el.getBoundingClientRect();
+                if (rect.height === 0) continue;
+
+                var tagName = el.tagName.toLowerCase();
+                var isHeading = /^h[1-6]$/.test(tagName);
+
+                // Heading orphan prevention: if heading fits but leaves too little room for following content
+                if (isHeading && rect.bottom <= currentPageEnd) {
+                    var remaining = currentPageEnd - rect.bottom;
+                    var minFollowing = parseFloat(window.getComputedStyle(el).fontSize) * 3;
+                    if (remaining < minFollowing) { addBreak(rect.top); }
+                }
+
+                var breakAt = isHeading ? rect.top : rect.bottom;
+
+                if (breakAt > currentPageEnd) {
+                    var elementHeight = rect.bottom - rect.top;
+                    var fitsInPage = elementHeight <= contentHeight;
+
+                    if (isHeading || (fitsInPage && rect.top > breakPoints[breakPoints.length - 1])) {
+                        addBreak(rect.top);
+                    } else if (!fitsInPage) {
+                        if (rect.top > breakPoints[breakPoints.length - 1]) {
+                            addBreak(rect.top);
+                        }
+                        splitTallElement(el, rect);
+                    } else {
+                        addBreak(currentPageEnd);
+                    }
+
+                    while (rect.bottom > currentPageEnd) {
+                        addBreak(currentPageEnd);
+                    }
+                }
+            }
+
             var docHeight = document.documentElement.scrollHeight;
             if (breakPoints[breakPoints.length - 1] < docHeight) {
                 breakPoints.push(docHeight);
             }
-
             return breakPoints;
         })();
         """

@@ -5,7 +5,17 @@
       "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | tail -60)",
       "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | grep -E \"\\(error:|warning:|BUILD|FAILED\\)\" | head -20)",
       "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test 2>&1 | grep -E \"\\(Test |error:|BUILD|FAILED|Executed|passed|failed\\)\" | head -30)",
-      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E \"\\(Test |error:|BUILD|FAILED|passed|failed|◇|✔|✘\\)\" | head -40)"
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E \"\\(Test |error:|BUILD|FAILED|passed|failed|◇|✔|✘\\)\" | head -40)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E '\\(passed|failed|TEST \\(SUCCEEDED|FAILED\\)\\)')",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | tail -3)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:digitalbunker.dev)",
+      "Bash(cd /Users/susumu/Develop/md-tool/md-tool && xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | tail -30)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' build 2>&1 | grep -E '\\(error:|BUILD SUCCEEDED|BUILD FAILED\\)')",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E '\\(Test case|Tests? \\(passed|failed\\)|BUILD|error:|\\\\*\\\\*\\)')",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | tail -15)",
+      "Bash(xcodebuild -scheme md-tool -destination 'platform=macOS' test -only-testing:md-toolTests 2>&1 | grep -E \"\\(passed|failed|TEST|Executed\\)\")"
     ]
   }
 }

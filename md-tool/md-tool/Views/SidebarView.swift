@@ -146,9 +146,9 @@ struct SidebarView: View {
 
             HStack {
                 Button {
-                    viewModel.addFolder()
+                    viewModel.addFileOrFolder { url in onSelect(url) }
                 } label: {
-                    Label("フォルダを追加", systemImage: "plus")
+                    Label("追加...", systemImage: "plus")
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
@@ -196,10 +196,16 @@ struct SidebarView: View {
                       let urlString = String(data: data, encoding: .utf8),
                       let url = URL(string: urlString) else { return }
                 var isDir: ObjCBool = false
-                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
-                      isDir.boolValue else { return }
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
                 DispatchQueue.main.async {
-                    viewModel.addFolderByURL(url)
+                    if isDir.boolValue {
+                        viewModel.addFolderByURL(url)
+                    } else {
+                        let ext = url.pathExtension.lowercased()
+                        if ext == "md" || ext == "markdown" {
+                            onSelect(url)
+                        }
+                    }
                 }
             }
         }

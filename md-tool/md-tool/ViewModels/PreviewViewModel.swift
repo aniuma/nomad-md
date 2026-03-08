@@ -16,6 +16,7 @@ final class PreviewViewModel {
     private var currentURL: URL?
     private var renderCache: [String: String] = [:]  // content hash -> html
     private let maxCacheEntries = 50
+    private var skipNextFileWatch = false
 
     func loadFile(at url: URL?) {
         guard let url = url else {
@@ -94,6 +95,10 @@ final class PreviewViewModel {
         let fileName = url.lastPathComponent
         fileWatcher.start(paths: [dir]) { [weak self] changedPaths in
             guard let self, let currentURL = self.currentURL else { return }
+            if self.skipNextFileWatch {
+                self.skipNextFileWatch = false
+                return
+            }
             let shouldReload = changedPaths.isEmpty || changedPaths.contains { path in
                 path.hasSuffix(fileName) || path == currentURL.path
             }
@@ -101,6 +106,28 @@ final class PreviewViewModel {
                 self.renderFile(at: currentURL)
             }
         }
+    }
+
+    func toggleCheckbox(at line: Int) {
+        guard let url = currentURL,
+              let content = try? String(contentsOf: url, encoding: .utf8) else { return }
+        var lines = content.components(separatedBy: "\n")
+        // swift-markdown line numbers are 1-based
+        let index = line - 1
+        guard index >= 0, index < lines.count else { return }
+        let currentLine = lines[index]
+        if currentLine.contains("- [ ]") {
+            lines[index] = currentLine.replacingOccurrences(of: "- [ ]", with: "- [x]")
+        } else if currentLine.contains("- [x]") || currentLine.contains("- [X]") {
+            lines[index] = currentLine
+                .replacingOccurrences(of: "- [x]", with: "- [ ]")
+                .replacingOccurrences(of: "- [X]", with: "- [ ]")
+        } else {
+            return
+        }
+        let newContent = lines.joined(separator: "\n")
+        skipNextFileWatch = true
+        try? newContent.write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func stopWatching() {

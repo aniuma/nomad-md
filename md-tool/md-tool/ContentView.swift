@@ -197,7 +197,8 @@ struct ContentView: View {
             baseURL: fileURL.deletingLastPathComponent(),
             showTOC: showTOC,
             theme: previewTheme,
-            onInternalLink: { url in selectFile(url) }
+            onInternalLink: { url in selectFile(url) },
+            onToggleCheckbox: { line in previewVM.toggleCheckbox(at: line) }
         )
     }
 
@@ -231,7 +232,8 @@ struct ContentView: View {
                 baseURL: fileURL.deletingLastPathComponent(),
                 showTOC: showTOC,
                 theme: previewTheme,
-                onInternalLink: { url in selectFile(url) }
+                onInternalLink: { url in selectFile(url) },
+                onToggleCheckbox: { line in previewVM.toggleCheckbox(at: line) }
             )
             .frame(minWidth: 300)
         }
@@ -376,11 +378,17 @@ struct ContentView: View {
                       let urlString = String(data: data, encoding: .utf8),
                       let url = URL(string: urlString) else { return }
                 var isDir: ObjCBool = false
-                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir),
-                      isDir.boolValue else { return }
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
                 DispatchQueue.main.async {
-                    initSidebarVM()
-                    sidebarVM?.addFolderByURL(url)
+                    if isDir.boolValue {
+                        initSidebarVM()
+                        sidebarVM?.addFolderByURL(url)
+                    } else {
+                        let ext = url.pathExtension.lowercased()
+                        if ext == "md" || ext == "markdown" {
+                            selectFile(url)
+                        }
+                    }
                 }
             }
         }

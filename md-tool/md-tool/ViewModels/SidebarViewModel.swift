@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import UniformTypeIdentifiers
 
 @Observable
 final class SidebarViewModel {
@@ -36,27 +37,36 @@ final class SidebarViewModel {
     }
 
     func addFolder() {
+        addFileOrFolder(onFileSelected: nil)
+    }
+
+    func addFileOrFolder(onFileSelected: ((URL) -> Void)?) {
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false
+        panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.message = "Markdownファイルを含むフォルダを選択してください"
+        panel.allowedContentTypes = [.folder, .init(filenameExtension: "md")!, .init(filenameExtension: "markdown")!]
+        panel.message = "Markdownファイルまたはフォルダを選択してください"
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        // Duplicate check
-        if appState.registeredFolderURLs.contains(where: { $0.path == url.path }) { return }
+        var isDir: ObjCBool = false
+        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
 
-        appState.addFolder(url)
-        if let node = FileSystemService.scanDirectory(at: url) {
-            rootNodes.append(node)
-            // Auto-select first markdown file if nothing is selected
-            if appState.selectedFileURL == nil,
-               let firstFile = FileSystemService.findFirstMarkdownFile(in: node) {
-                appState.selectFile(firstFile)
+        if isDir.boolValue {
+            if appState.registeredFolderURLs.contains(where: { $0.path == url.path }) { return }
+            appState.addFolder(url)
+            if let node = FileSystemService.scanDirectory(at: url) {
+                rootNodes.append(node)
+                if appState.selectedFileURL == nil,
+                   let firstFile = FileSystemService.findFirstMarkdownFile(in: node) {
+                    appState.selectFile(firstFile)
+                }
             }
+            startWatching()
+        } else {
+            onFileSelected?(url)
         }
-        startWatching()
     }
 
     func addFolderByURL(_ url: URL) {

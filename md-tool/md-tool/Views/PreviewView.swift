@@ -8,12 +8,14 @@ struct PreviewView: NSViewRepresentable {
     var theme: String = UserDefaults.standard.string(forKey: "previewTheme") ?? "default"
     var onInternalLink: ((URL) -> Void)?
     var onWebViewReady: ((WKWebView) -> Void)?
+    var onToggleCheckbox: ((Int) -> Void)?
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(context.coordinator, name: "copySection")
+        config.userContentController.add(context.coordinator, name: "toggleCheckbox")
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
@@ -26,6 +28,7 @@ struct PreviewView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.baseURL = baseURL
         context.coordinator.onInternalLink = onInternalLink
+        context.coordinator.onToggleCheckbox = onToggleCheckbox
         let fullHTML = wrapInHTMLTemplate(htmlContent)
 
         let server = LocalHTTPServer.shared
@@ -149,6 +152,26 @@ struct PreviewView: NSViewRepresentable {
         });
     })();
 
+    // Task list checkbox toggle
+    (function() {
+        document.querySelectorAll('li.task-list-item input[type="checkbox"]').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                var line = parseInt(this.getAttribute('data-line'));
+                if (!isNaN(line)) {
+                    window.webkit.messageHandlers.toggleCheckbox.postMessage(line);
+                }
+                var li = this.closest('li.task-list-item');
+                if (li) {
+                    if (this.checked) {
+                        li.classList.add('checked');
+                    } else {
+                        li.classList.remove('checked');
+                    }
+                }
+            });
+        });
+    })();
+
     // TOC scroll tracking
     (function() {
         var headings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
@@ -215,6 +238,7 @@ struct PreviewView: NSViewRepresentable {
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var baseURL: URL?
         var onInternalLink: ((URL) -> Void)?
+        var onToggleCheckbox: ((Int) -> Void)?
         weak var webView: WKWebView?
 
         nonisolated func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -222,6 +246,8 @@ struct PreviewView: NSViewRepresentable {
                 if message.name == "copySection", let text = message.body as? String {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
+                } else if message.name == "toggleCheckbox", let line = message.body as? Int {
+                    onToggleCheckbox?(line)
                 }
             }
         }
