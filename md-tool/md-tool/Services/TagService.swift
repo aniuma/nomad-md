@@ -2,7 +2,7 @@ import Foundation
 
 nonisolated struct TagService {
     /// ファイルからFront Matterのtagsフィールドを抽出する
-    static func extractTags(from url: URL) -> [String] {
+    nonisolated static func extractTags(from url: URL) -> [String] {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
             return []
@@ -29,7 +29,7 @@ nonisolated struct TagService {
     }
 
     /// YAML行からtagsフィールドのみを抽出する
-    private static func parseTagsFromYAML(_ lines: [String]) -> [String] {
+    nonisolated private static func parseTagsFromYAML(_ lines: [String]) -> [String] {
         var inTags = false
         var tags: [String] = []
 
@@ -90,7 +90,7 @@ nonisolated struct TagService {
     }
 
     /// 全ファイルからタグを収集し、タグ→ファイルURL辞書を返す
-    static func collectAllTags(from urls: [URL]) -> [String: [URL]] {
+    nonisolated static func collectAllTags(from urls: [URL]) -> [String: [URL]] {
         var result: [String: [URL]] = [:]
         for url in urls {
             let tags = extractTags(from: url)
