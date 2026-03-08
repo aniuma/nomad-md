@@ -298,7 +298,8 @@ struct ContentView: View {
     @ViewBuilder
     private func modalOverlay<Content: View>(onDismiss: @escaping () -> Void, @ViewBuilder content: () -> Content) -> some View {
         ZStack {
-            Color.black.opacity(0.2)
+            Rectangle()
+                .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
                 .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { onDismiss() } }
             VStack {

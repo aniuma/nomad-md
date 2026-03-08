@@ -9,20 +9,22 @@ struct TabBarView: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(tabs, id: \.self) { url in
-                    TabItemView(
-                        url: url,
-                        isActive: url.path == activeTab?.path,
-                        isDirty: isDirty(url),
-                        onSelect: { onSelect(url) },
-                        onClose: { onClose(url) }
-                    )
+            GlassEffectContainer {
+                HStack(spacing: 0) {
+                    ForEach(tabs, id: \.self) { url in
+                        TabItemView(
+                            url: url,
+                            isActive: url.path == activeTab?.path,
+                            isDirty: isDirty(url),
+                            onSelect: { onSelect(url) },
+                            onClose: { onClose(url) }
+                        )
+                    }
                 }
             }
         }
         .frame(height: 30)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(.regularMaterial)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -64,16 +66,8 @@ private struct TabItemView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .frame(height: 28)
-        .background(isActive
-            ? Color(nsColor: .controlAccentColor).opacity(0.12)
-            : (isHovered ? Color(nsColor: .controlAccentColor).opacity(0.05) : Color.clear))
-        .overlay(alignment: .bottom) {
-            if isActive {
-                Rectangle()
-                    .fill(Color.accentColor)
-                    .frame(height: 2)
-            }
-        }
+        .background(isHovered && !isActive ? Color(nsColor: .controlAccentColor).opacity(0.05) : Color.clear)
+        .modifier(ActiveTabGlassModifier(isActive: isActive))
         .overlay(alignment: .trailing) {
             Divider()
                 .frame(height: 16)
@@ -84,6 +78,19 @@ private struct TabItemView: View {
         }
         .onHover { hovering in
             isHovered = hovering
+        }
+    }
+}
+
+private struct ActiveTabGlassModifier: ViewModifier {
+    let isActive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isActive {
+            content.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            content
         }
     }
 }
