@@ -99,7 +99,9 @@ struct ContentView: View {
             SidebarView(
                 viewModel: vm,
                 selectedFileURL: appState.selectedFileURL,
-                onSelect: { url in selectFile(url) }
+                onSelect: { url in selectFile(url) },
+                fileBookmarks: appState.fileBookmarks,
+                onRemoveBookmark: { url in appState.removeFileBookmark(url) }
             )
         } else {
             WelcomeView {
@@ -534,6 +536,20 @@ private struct NotificationModifier: ViewModifier {
                     sidebarVM?.addFolderByURL(parentFolder)
                 }
                 selectFile(fileURL)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openFileFromFinder)) { notification in
+                guard let fileURL = notification.object as? URL else { return }
+                initSidebarVM()
+                let parentFolder = fileURL.deletingLastPathComponent()
+                if !appState.registeredFolderURLs.contains(where: { parentFolder.path.hasPrefix($0.path) }) {
+                    sidebarVM?.addFolderByURL(parentFolder)
+                }
+                // 新規タブで開き、ブックマークに追加
+                appState.openFileFromFinder(fileURL)
+                previewVM.loadFile(at: fileURL)
+                if viewMode == .edit || viewMode == .split {
+                    editorVM.loadFile(at: fileURL)
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .appearanceChanged)) { _ in
                 appearanceMode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"

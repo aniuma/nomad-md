@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct NomadApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -124,6 +126,21 @@ extension NomadApp {
     }
 }
 
+// MARK: - AppDelegate（Finderからのファイルオープンを処理）
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            let ext = url.pathExtension.lowercased()
+            guard ext == "md" || ext == "markdown" || ext == "mdown" || ext == "mkd" else { continue }
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+
+            // Finderからのダブルクリック → 新規タブで開き、ブックマークに追加
+            NotificationCenter.default.post(name: .openFileFromFinder, object: url)
+        }
+    }
+}
+
 extension Notification.Name {
     static let addFolder = Notification.Name("addFolder")
     static let quickOpen = Notification.Name("quickOpen")
@@ -138,6 +155,7 @@ extension Notification.Name {
     static let exportPDF = Notification.Name("exportPDF")
     static let openFileByURL = Notification.Name("openFileByURL")
     static let openFolderByURL = Notification.Name("openFolderByURL")
+    static let openFileFromFinder = Notification.Name("openFileFromFinder")
     static let closeTab = Notification.Name("closeTab")
     static let showRecentFiles = Notification.Name("showRecentFiles")
     static let appearanceChanged = Notification.Name("appearanceChanged")
