@@ -5,14 +5,17 @@ struct SidebarView: View {
     @Bindable var viewModel: SidebarViewModel
     let selectedFileURL: URL?
     let onSelect: (URL) -> Void
+    let fileBookmarks: [URL]
+    let onRemoveBookmark: (URL) -> Void
 
     @State private var folderToRemove: URL?
     @State private var isDropTargeted = false
     @State private var isTagSectionExpanded = true
+    @State private var isBookmarkSectionExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
-            if viewModel.rootNodes.isEmpty {
+            if viewModel.rootNodes.isEmpty && fileBookmarks.isEmpty {
                 Spacer()
                 Text("Markdownファイルが見つかりません")
                     .foregroundStyle(.secondary)
@@ -33,6 +36,39 @@ struct SidebarView: View {
                         onSelect(url)
                     }
                 )) {
+                    // ブックマークセクション
+                    if !fileBookmarks.isEmpty {
+                        Section {
+                            DisclosureGroup(isExpanded: $isBookmarkSectionExpanded) {
+                                ForEach(fileBookmarks, id: \.self) { url in
+                                    Label {
+                                        Text(url.lastPathComponent)
+                                            .font(.system(size: 13))
+                                            .lineLimit(1)
+                                    } icon: {
+                                        Image(systemName: "bookmark.fill")
+                                            .foregroundStyle(NomadColors.sandGold)
+                                            .font(.system(size: 11))
+                                    }
+                                    .tag(url)
+                                    .contextMenu {
+                                        Button("Finderで表示") {
+                                            NSWorkspace.shared.activateFileViewerSelecting([url])
+                                        }
+                                        Divider()
+                                        Button("ブックマークから削除", role: .destructive) {
+                                            onRemoveBookmark(url)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Text("ブックマーク")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     ForEach(viewModel.rootNodes, id: \.url) { root in
                         Section {
                             if let children = root.children {

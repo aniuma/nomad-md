@@ -127,6 +127,36 @@ struct BookmarkManager {
         UserDefaults.standard.removeObject(forKey: recentFilesKey)
     }
 
+    // MARK: - File Bookmarks
+
+    private static let fileBookmarksKey = "fileBookmarks"
+
+    static func saveFileBookmarks(_ urls: [URL]) {
+        let paths = urls.map { $0.path }
+        UserDefaults.standard.set(paths, forKey: fileBookmarksKey)
+    }
+
+    static func restoreFileBookmarks() -> [URL] {
+        guard let paths = UserDefaults.standard.stringArray(forKey: fileBookmarksKey) else { return [] }
+        return paths.compactMap { path in
+            let url = URL(fileURLWithPath: path)
+            return FileManager.default.fileExists(atPath: path) ? url : nil
+        }
+    }
+
+    static func addFileBookmark(_ url: URL) {
+        var bookmarks = restoreFileBookmarks()
+        guard !bookmarks.contains(where: { $0.path == url.path }) else { return }
+        bookmarks.insert(url, at: 0)
+        saveFileBookmarks(bookmarks)
+    }
+
+    static func removeFileBookmark(_ url: URL) {
+        var bookmarks = restoreFileBookmarks()
+        bookmarks.removeAll { $0.path == url.path }
+        saveFileBookmarks(bookmarks)
+    }
+
     // MARK: - Private
 
     private static func resolveBookmarkData(_ data: Data) -> URL? {

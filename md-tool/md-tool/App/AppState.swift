@@ -7,12 +7,14 @@ final class AppState {
     var openTabs: [URL] = []
     var activeTabURL: URL?
     var recentFiles: [URL] = []
+    var fileBookmarks: [URL] = []
 
     init() {
         BookmarkManager.migrateIfNeeded()
         self.registeredFolderURLs = BookmarkManager.restoreBookmarks()
         self.selectedFileURL = BookmarkManager.restoreSelectedFile()
         self.recentFiles = BookmarkManager.restoreRecentFiles()
+        self.fileBookmarks = BookmarkManager.restoreFileBookmarks()
 
         // Restore tabs: if there was a previously selected file, open it as a tab
         if let selected = selectedFileURL {
@@ -85,6 +87,25 @@ final class AppState {
         activeTabURL = url
         selectedFileURL = url
         BookmarkManager.saveSelectedFile(url)
+    }
+
+    // MARK: - File Bookmarks
+
+    func addFileBookmark(_ url: URL) {
+        guard !fileBookmarks.contains(where: { $0.path == url.path }) else { return }
+        fileBookmarks.insert(url, at: 0)
+        BookmarkManager.addFileBookmark(url)
+    }
+
+    func removeFileBookmark(_ url: URL) {
+        fileBookmarks.removeAll { $0.path == url.path }
+        BookmarkManager.removeFileBookmark(url)
+    }
+
+    /// Finderからファイルを開く: 新規タブで開き、ブックマークに追加
+    func openFileFromFinder(_ url: URL) {
+        selectFile(url)
+        addFileBookmark(url)
     }
 
     private func addToRecentFiles(_ url: URL) {
