@@ -5,6 +5,8 @@ struct SidebarView: View {
     @Bindable var viewModel: SidebarViewModel
     let selectedFileURL: URL?
     let onSelect: (URL) -> Void
+    var onPin: (URL) -> Void = { _ in }
+    var onOpenInNewTab: (URL) -> Void = { _ in }
 
     @State private var folderToRemove: URL?
     @State private var isDropTargeted = false
@@ -53,6 +55,25 @@ struct SidebarView: View {
                                             .opacity(isFiltered ? 0.3 : 1.0)
                                     }
                                     .tag(node.url)
+                                    .contextMenu {
+                                        if !node.isDirectory {
+                                            Button("新規タブで開く") {
+                                                onOpenInNewTab(node.url)
+                                            }
+                                            Button("タブをピン留め") {
+                                                onSelect(node.url)
+                                                onPin(node.url)
+                                            }
+                                            Divider()
+                                            Button("Finderで表示") {
+                                                NSWorkspace.shared.activateFileViewerSelecting([node.url])
+                                            }
+                                        } else {
+                                            Button("Finderで表示") {
+                                                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.url.path)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         } header: {
@@ -83,32 +104,22 @@ struct SidebarView: View {
                                         HStack {
                                             Image(systemName: "tag")
                                                 .font(.system(size: 10))
-                                                .foregroundStyle(viewModel.selectedTag == tag ? .white : .secondary)
+                                                .foregroundStyle(viewModel.selectedTag == tag ? Color.accentColor : .secondary)
                                             Text(tag)
                                                 .font(.system(size: 12))
-                                                .foregroundStyle(viewModel.selectedTag == tag ? .white : .primary)
+                                                .foregroundStyle(viewModel.selectedTag == tag ? .primary : .primary)
                                                 .lineLimit(1)
                                             Spacer()
                                             Text("\(viewModel.allTags[tag]?.count ?? 0)")
                                                 .font(.system(size: 10, weight: .medium))
-                                                .foregroundStyle(viewModel.selectedTag == tag ? .white : .secondary)
+                                                .foregroundStyle(.secondary)
                                                 .padding(.horizontal, 6)
                                                 .padding(.vertical, 2)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(viewModel.selectedTag == tag
-                                                            ? Color.white.opacity(0.3)
-                                                            : Color.secondary.opacity(0.15))
-                                                )
+                                                .background(.ultraThinMaterial, in: Capsule())
                                         }
-                                        .padding(.vertical, 2)
-                                        .padding(.horizontal, 6)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .fill(viewModel.selectedTag == tag
-                                                    ? Color.accentColor
-                                                    : Color.clear)
-                                        )
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal, 8)
+                                        .modifier(TagGlassModifier(isSelected: viewModel.selectedTag == tag))
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -210,6 +221,19 @@ struct SidebarView: View {
             return FileSystemService.findFirstMarkdownFile(in: node)
         }
         return nil
+    }
+
+    private struct TagGlassModifier: ViewModifier {
+        let isSelected: Bool
+
+        @ViewBuilder
+        func body(content: Content) -> some View {
+            if isSelected {
+                content.glassEffect(.regular.interactive(), in: .capsule)
+            } else {
+                content
+            }
+        }
     }
 
     private func handleDrop(providers: [NSItemProvider]) {

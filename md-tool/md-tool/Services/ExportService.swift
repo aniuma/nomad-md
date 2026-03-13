@@ -18,7 +18,7 @@ enum ExportError: Error, LocalizedError {
 enum ExportService {
 
     // Retain the delegate + webView + window until PDF generation completes
-    private static var activePDFContext: (window: NSWindow, webView: WKWebView, delegate: PDFNavigationDelegate)?
+    fileprivate static var activePDFContext: (window: NSWindow, webView: WKWebView, delegate: PDFNavigationDelegate)?
 
     // MARK: - HTML Export
 
@@ -410,12 +410,26 @@ enum ExportService {
     }
 
     /* Page break control */
-    h1, h2, h3 {
+    h1, h2, h3, h4, h5, h6 {
         page-break-after: avoid;
+        break-after: avoid;
     }
 
-    pre, table, img {
+    pre, table, img, .callout, .oembed-youtube-pdf {
         page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    p, li {
+        orphans: 3;
+        widows: 3;
+    }
+
+    @media print {
+        body { -webkit-print-color-adjust: exact; }
+        h1, h2, h3, h4, h5, h6 { break-after: avoid; }
+        pre, table, img, blockquote, .callout { break-inside: avoid; }
+        p, li { orphans: 3; widows: 3; }
     }
 
     /* Mermaid / KaTeX */
@@ -543,182 +557,70 @@ fileprivate final class PDFNavigationDelegate: NSObject, WKNavigationDelegate {
         MainActor.assumeIsolated {
             // Wait for Mermaid/KaTeX rendering
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
-                generatePDF(from: webView)
+                generatePDFViaPrint(from: webView)
             }
         }
     }
 
-    private func generatePDF(from webView: WKWebView) {
+    /// Primary: NSPrintOperation-based PDF generation (uses WebKit's print pipeline, CSS page-break respected)
+    private func generatePDFViaPrint(from webView: WKWebView) {
+        let pageSize = settings.pageSize
+        let margin = settings.marginPreset.points
+        let headerSpace: CGFloat = settings.showHeader ? 28 : 0
+        let footerSpace: CGFloat = settings.showFooter ? 28 : 0
+
+        let printInfo = NSPrintInfo()
+        printInfo.paperSize = NSSize(width: pageSize.width, height: pageSize.height)
+        printInfo.topMargin = margin + headerSpace
+        printInfo.bottomMargin = margin + footerSpace
+        printInfo.leftMargin = margin
+        printInfo.rightMargin = margin
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .automatic
+        printInfo.isHorizontallyCentered = false
+        printInfo.isVerticallyCentered = false
+
+        // Save directly to PDF file
+        printInfo.jobDisposition = .save
+        printInfo.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = saveURL
+
+        let printOp = webView.printOperation(with: printInfo)
+        printOp.showsPrintPanel = false
+        printOp.showsProgressPanel = false
+
+        printOp.runModal(for: webView.window ?? NSWindow(),
+                         delegate: self,
+                         didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
+                         contextInfo: nil)
+    }
+
+    @objc private func printOperationDidRun(_ printOperation: NSPrintOperation, success: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        if success {
+            // Add header/footer to the saved PDF
+            if settings.showHeader || settings.showFooter,
+               let pdfDoc = PDFDocument(url: saveURL) {
+                ExportService.addHeaderFooter(to: pdfDoc, settings: settings, fileName: fileName)
+                pdfDoc.write(to: saveURL)
+            }
+        } else {
+            // Fallback to existing createPDF + split approach
+            guard let webView = ExportService.activePDFContext?.webView else {
+                onComplete()
+                return
+            }
+            generatePDFFallback(from: webView)
+            return
+        }
+        onComplete()
+    }
+
+    /// Fallback: existing createPDF + JS breakpoint splitting
+    private func generatePDFFallback(from webView: WKWebView) {
         let margin = settings.marginPreset.points
         let headerSpace: CGFloat = settings.showHeader ? 28 : 0
         let footerSpace: CGFloat = settings.showFooter ? 28 : 0
         let contentAreaHeight = settings.pageSize.height - margin * 2 - headerSpace - footerSpace
 
-        // JS to collect page break points based on block element positions
-        let breakpointJS = """
-        (function() {
-            var contentHeight = \(contentAreaHeight);
-            var breakPoints = [0];
-            var currentPageEnd = contentHeight;
-
-            function addBreak(y) {
-                if (y > breakPoints[breakPoints.length - 1]) {
-                    breakPoints.push(y);
-                    currentPageEnd = y + contentHeight;
-                }
-            }
-
-            function getLineHeight(el) {
-                var style = window.getComputedStyle(el);
-                var fs = parseFloat(style.fontSize);
-                var lh = style.lineHeight;
-                if (lh === 'normal') return fs * 1.5;
-                if (lh.endsWith('px')) return parseFloat(lh);
-                var v = parseFloat(lh);
-                return (!isNaN(v) && v > 0) ? fs * v : fs * 1.5;
-            }
-
-            function splitTallElement(el, rect) {
-                var tagName = el.tagName.toLowerCase();
-
-                if (tagName === 'table') {
-                    var rows = el.querySelectorAll(':scope > tbody > tr, :scope > thead > tr, :scope > tr');
-                    for (var r = 0; r < rows.length; r++) {
-                        var rowRect = rows[r].getBoundingClientRect();
-                        if (rowRect.bottom > currentPageEnd) {
-                            addBreak(rowRect.top);
-                        }
-                    }
-                } else if (tagName === 'pre') {
-                    var lineH = getLineHeight(el);
-                    var nextPageEnd = currentPageEnd;
-                    while (nextPageEnd < rect.bottom) {
-                        var nearestLine = rect.top + Math.floor((nextPageEnd - rect.top) / lineH) * lineH;
-                        if (nearestLine > rect.top) { addBreak(nearestLine); }
-                        nextPageEnd = nearestLine + contentHeight;
-                    }
-                } else if (tagName === 'p') {
-                    var lineH = getLineHeight(el);
-                    var nextPageEnd = currentPageEnd;
-                    while (nextPageEnd < rect.bottom) {
-                        var nearestLine = rect.top + Math.floor((nextPageEnd - rect.top) / lineH) * lineH;
-                        if (nearestLine > rect.top) { addBreak(nearestLine); }
-                        nextPageEnd = nearestLine + contentHeight;
-                    }
-                } else if (tagName === 'ul' || tagName === 'ol') {
-                    var items = el.querySelectorAll(':scope > li');
-                    for (var li = 0; li < items.length; li++) {
-                        var liRect = items[li].getBoundingClientRect();
-                        if (liRect.bottom > currentPageEnd) {
-                            addBreak(liRect.top);
-                        }
-                    }
-                } else if (tagName === 'blockquote' || el.classList.contains('callout')) {
-                    var children = el.children;
-                    for (var c = 0; c < children.length; c++) {
-                        var childRect = children[c].getBoundingClientRect();
-                        if (childRect.bottom > currentPageEnd) {
-                            addBreak(childRect.top);
-                        }
-                    }
-                } else {
-                    while (rect.bottom > currentPageEnd) {
-                        addBreak(currentPageEnd);
-                    }
-                }
-            }
-
-            var blocks = document.querySelectorAll(
-                'h1, h2, h3, h4, h5, h6, p, pre, table, blockquote, ul, ol, hr, .callout, .mermaid, .katex-display, img'
-            );
-
-            for (var i = 0; i < blocks.length; i++) {
-                var el = blocks[i];
-                var rect = el.getBoundingClientRect();
-                if (rect.height === 0) continue;
-
-                var tagName = el.tagName.toLowerCase();
-                var isHeading = /^h[1-6]$/.test(tagName);
-
-                // Heading orphan prevention: if heading fits but leaves too little room for following content
-                if (isHeading && rect.bottom <= currentPageEnd) {
-                    var remaining = currentPageEnd - rect.bottom;
-                    var minFollowing = parseFloat(window.getComputedStyle(el).fontSize) * 3;
-                    if (remaining < minFollowing) { addBreak(rect.top); }
-                }
-
-                var breakAt = isHeading ? rect.top : rect.bottom;
-
-                if (breakAt > currentPageEnd) {
-                    var elementHeight = rect.bottom - rect.top;
-                    var fitsInPage = elementHeight <= contentHeight;
-
-                    if (isHeading || (fitsInPage && rect.top > breakPoints[breakPoints.length - 1])) {
-                        addBreak(rect.top);
-                    } else if (!fitsInPage) {
-                        if (rect.top > breakPoints[breakPoints.length - 1]) {
-                            addBreak(rect.top);
-                        }
-                        splitTallElement(el, rect);
-                    } else {
-                        addBreak(currentPageEnd);
-                    }
-
-                    while (rect.bottom > currentPageEnd) {
-                        addBreak(currentPageEnd);
-                    }
-                }
-            }
-
-            var docHeight = document.documentElement.scrollHeight;
-            if (breakPoints[breakPoints.length - 1] < docHeight) {
-                breakPoints.push(docHeight);
-            }
-            return breakPoints;
-        })();
-        """
-
-        webView.evaluateJavaScript(breakpointJS) { [self] jsResult, jsError in
-            guard let breakValues = jsResult as? [NSNumber], breakValues.count >= 2 else {
-                // Fallback: if JS fails, use simple fixed-height splitting
-                self.generatePDFWithoutBreakpoints(from: webView, contentAreaHeight: contentAreaHeight)
-                return
-            }
-
-            let pageBreaks = breakValues.map { CGFloat($0.doubleValue) }
-
-            // Get single tall PDF (no rect = full content height)
-            let config = WKPDFConfiguration()
-            webView.createPDF(configuration: config) { [self] result in
-                switch result {
-                case .success(let data):
-                    do {
-                        let pdfDoc = try ExportService.splitIntoPages(
-                            sourcePDFData: data,
-                            pageBreaks: pageBreaks,
-                            settings: settings
-                        )
-                        ExportService.addHeaderFooter(to: pdfDoc, settings: settings, fileName: fileName)
-                        pdfDoc.write(to: saveURL)
-                    } catch {
-                        let alert = NSAlert()
-                        alert.messageText = "PDFの生成に失敗しました"
-                        alert.informativeText = error.localizedDescription
-                        alert.runModal()
-                    }
-                case .failure(let error):
-                    let alert = NSAlert()
-                    alert.messageText = "PDFの生成に失敗しました"
-                    alert.informativeText = error.localizedDescription
-                    alert.runModal()
-                }
-                onComplete()
-            }
-        }
-    }
-
-    /// Fallback: split by fixed content height when JS breakpoints are unavailable
-    private func generatePDFWithoutBreakpoints(from webView: WKWebView, contentAreaHeight: CGFloat) {
         let config = WKPDFConfiguration()
         webView.createPDF(configuration: config) { [self] result in
             switch result {
@@ -733,7 +635,6 @@ fileprivate final class PDFNavigationDelegate: NSObject, WKNavigationDelegate {
                     let scale = sourceRect.width / (settings.pageSize.width - settings.marginPreset.points * 2)
                     let totalHeight = sourceRect.height / scale
 
-                    // Generate fixed-height breakpoints
                     var pageBreaks: [CGFloat] = [0]
                     var y: CGFloat = contentAreaHeight
                     while y < totalHeight {

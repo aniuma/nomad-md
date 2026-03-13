@@ -1,23 +1,27 @@
 import SwiftUI
 
 struct TabBarView: View {
-    let tabs: [URL]
-    let activeTab: URL?
-    let onSelect: (URL) -> Void
-    let onClose: (URL) -> Void
-    let isDirty: (URL) -> Bool
+    let tabs: [TabItem]
+    let activeTab: UUID?
+    let onSelect: (TabItem) -> Void
+    let onClose: (TabItem) -> Void
+    let isDirty: (TabItem) -> Bool
+    var isPreviewTab: (TabItem) -> Bool = { _ in false }
+    var onPin: (TabItem) -> Void = { _ in }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             GlassEffectContainer {
                 HStack(spacing: 0) {
-                    ForEach(tabs, id: \.self) { url in
+                    ForEach(tabs) { tab in
                         TabItemView(
-                            url: url,
-                            isActive: url.path == activeTab?.path,
-                            isDirty: isDirty(url),
-                            onSelect: { onSelect(url) },
-                            onClose: { onClose(url) }
+                            tab: tab,
+                            isActive: tab.id == activeTab,
+                            isDirty: isDirty(tab),
+                            isPreview: isPreviewTab(tab),
+                            onSelect: { onSelect(tab) },
+                            onClose: { onClose(tab) },
+                            onPin: { onPin(tab) }
                         )
                     }
                 }
@@ -32,11 +36,13 @@ struct TabBarView: View {
 }
 
 private struct TabItemView: View {
-    let url: URL
+    let tab: TabItem
     let isActive: Bool
     let isDirty: Bool
+    let isPreview: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
+    let onPin: () -> Void
 
     @State private var isHovered = false
 
@@ -47,8 +53,9 @@ private struct TabItemView: View {
                     .fill(NomadColors.sandGold)
                     .frame(width: 6, height: 6)
             }
-            Text(url.lastPathComponent)
+            Text(tab.url.lastPathComponent)
                 .font(.system(size: 12))
+                .italic(isPreview)
                 .lineLimit(1)
 
             Button {
@@ -73,6 +80,9 @@ private struct TabItemView: View {
                 .frame(height: 16)
         }
         .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            onPin()
+        }
         .onTapGesture {
             onSelect()
         }

@@ -1,7 +1,64 @@
 import SwiftUI
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// コールドスタート時にUIが準備完了する前に届いたURLをバッファリング
+    var pendingURLs: [URL] = []
+    var isUIReady = false
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        // 既存ウィンドウを前面に出す
+        if let window = NSApp.windows.first(where: { $0.isVisible }) {
+            window.makeKeyAndOrderFront(nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+
+        for url in urls {
+            guard url.isFileURL else { continue }
+            let fm = FileManager.default
+            guard fm.fileExists(atPath: url.path) else { continue }
+
+            if isUIReady {
+                deliverURL(url)
+            } else {
+                pendingURLs.append(url)
+            }
+        }
+    }
+
+    /// 新規ウィンドウ作成を抑制（Cmd+Nやメニューからの「新規ウィンドウ」を無効化）
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if flag {
+            // 既にウィンドウがあればそれを前面に
+            NSApp.windows.first { $0.isVisible }?.makeKeyAndOrderFront(nil)
+            return false
+        }
+        return true
+    }
+
+    func flushPendingURLs() {
+        isUIReady = true
+        for url in pendingURLs {
+            deliverURL(url)
+        }
+        pendingURLs.removeAll()
+    }
+
+    private func deliverURL(_ url: URL) {
+        var isDirectory: ObjCBool = false
+        FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+
+        if isDirectory.boolValue {
+            NotificationCenter.default.post(name: .openFolderByURL, object: url)
+        } else {
+            NotificationCenter.default.post(name: .openFileByURL, object: url)
+        }
+    }
+}
+
 @main
 struct NomadApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -9,6 +66,7 @@ struct NomadApp: App {
                     handleURLScheme(url)
                 }
         }
+        .handlesExternalEvents(matching: ["*"])
         .windowStyle(.automatic)
         .defaultSize(width: 1000, height: 700)
         .windowResizability(.contentMinSize)
@@ -98,6 +156,23 @@ struct NomadApp: App {
 
 extension NomadApp {
     func handleURLScheme(_ url: URL) {
+        // file:// scheme — Finder double-click or "Open With"
+        if url.isFileURL {
+            let fileManager = FileManager.default
+            guard fileManager.fileExists(atPath: url.path) else { return }
+
+            var isDirectory: ObjCBool = false
+            fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory)
+
+            if isDirectory.boolValue {
+                NotificationCenter.default.post(name: .openFolderByURL, object: url)
+            } else {
+                NotificationCenter.default.post(name: .openFileByURL, object: url)
+            }
+            return
+        }
+
+        // nomad:// custom URL scheme
         guard url.scheme == "nomad",
               url.host == "open",
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),

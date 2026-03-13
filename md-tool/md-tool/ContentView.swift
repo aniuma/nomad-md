@@ -88,6 +88,10 @@ struct ContentView: View {
                     selectFile(first)
                 }
             }
+            // Finderからのコールドスタート時にバッファされたURLを処理
+            DispatchQueue.main.async {
+                (NSApp.delegate as? AppDelegate)?.flushPendingURLs()
+            }
         }
     }
 
@@ -99,7 +103,15 @@ struct ContentView: View {
             SidebarView(
                 viewModel: vm,
                 selectedFileURL: appState.selectedFileURL,
-                onSelect: { url in selectFile(url) }
+                onSelect: { url in
+                    if NSApp.currentEvent?.modifierFlags.contains(.option) == true {
+                        openInNewTab(url)
+                    } else {
+                        selectFile(url)
+                    }
+                },
+                onPin: { url in appState.pinTab(url: url) },
+                onOpenInNewTab: { url in openInNewTab(url) }
             )
         } else {
             WelcomeView {
@@ -156,14 +168,16 @@ struct ContentView: View {
         if !appState.openTabs.isEmpty {
             TabBarView(
                 tabs: appState.openTabs,
-                activeTab: appState.activeTabURL,
-                onSelect: { url in activateTab(url) },
-                onClose: { url in closeTab(url) },
-                isDirty: { url in
+                activeTab: appState.activeTabID,
+                onSelect: { tab in activateTab(tab.id) },
+                onClose: { tab in closeTab(tab.id) },
+                isDirty: { tab in
                     (viewMode == .edit || viewMode == .split)
-                        && editorVM.currentFileURL?.path == url.path
+                        && editorVM.currentFileURL?.path == tab.url.path
                         && editorVM.isDirty
-                }
+                },
+                isPreviewTab: { tab in appState.isPreviewTab(tab.id) },
+                onPin: { tab in appState.pinTab(tab.id) }
             )
         }
     }
@@ -336,6 +350,17 @@ struct ContentView: View {
         return dirty ? "● \(name)" : name
     }
 
+    private func openInNewTab(_ url: URL) {
+        if viewMode == .edit || viewMode == .split {
+            editorVM.saveImmediately()
+        }
+        appState.openInNewTab(url)
+        previewVM.loadFile(at: url)
+        if viewMode == .edit || viewMode == .split {
+            editorVM.loadFile(at: url)
+        }
+    }
+
     private func selectFile(_ url: URL) {
         if viewMode == .edit || viewMode == .split {
             editorVM.saveImmediately()
@@ -347,24 +372,27 @@ struct ContentView: View {
         }
     }
 
-    private func activateTab(_ url: URL) {
+    private func activateTab(_ id: UUID) {
         if viewMode == .edit || viewMode == .split {
             editorVM.saveImmediately()
         }
-        appState.activateTab(url)
-        previewVM.loadFile(at: url)
-        if viewMode == .edit || viewMode == .split {
-            editorVM.loadFile(at: url)
+        appState.activateTab(id)
+        if let url = appState.activeTabURL {
+            previewVM.loadFile(at: url)
+            if viewMode == .edit || viewMode == .split {
+                editorVM.loadFile(at: url)
+            }
         }
     }
 
-    private func closeTab(_ url: URL) {
+    private func closeTab(_ id: UUID) {
         if viewMode == .edit || viewMode == .split {
-            if editorVM.currentFileURL?.path == url.path {
+            let closingURL = appState.openTabs.first(where: { $0.id == id })?.url
+            if editorVM.currentFileURL?.path == closingURL?.path {
                 editorVM.saveImmediately()
             }
         }
-        appState.closeTab(url)
+        appState.closeTab(id)
         if let newActive = appState.activeTabURL {
             previewVM.loadFile(at: newActive)
             if viewMode == .edit || viewMode == .split {
@@ -426,7 +454,7 @@ private struct NotificationModifier: ViewModifier {
     @Binding var previewTheme: String
     @Binding var appearanceMode: String
     let selectFile: (URL) -> Void
-    let closeTab: (URL) -> Void
+    let closeTab: (UUID) -> Void
     let initSidebarVM: () -> Void
 
     func body(content: Content) -> some View {
@@ -462,8 +490,8 @@ private struct NotificationModifier: ViewModifier {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .closeTab)) { _ in
-                if let activeURL = appState.activeTabURL {
-                    closeTab(activeURL)
+                if let activeID = appState.activeTabID {
+                    closeTab(activeID)
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .themeChanged)) { _ in
@@ -483,6 +511,9 @@ private struct NotificationModifier: ViewModifier {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     switch viewMode {
                     case .preview:
+                        if let id = appState.activeTabID {
+                            appState.pinTab(id)
+                        }
                         editorVM.loadFile(at: appState.selectedFileURL)
                         viewMode = .edit
                     case .edit, .split:
@@ -500,6 +531,9 @@ private struct NotificationModifier: ViewModifier {
                         previewVM.loadFile(at: appState.selectedFileURL)
                         viewMode = .preview
                     } else {
+                        if let id = appState.activeTabID {
+                            appState.pinTab(id)
+                        }
                         if viewMode == .edit { editorVM.saveImmediately() }
                         editorVM.loadFile(at: appState.selectedFileURL)
                         previewVM.loadFile(at: appState.selectedFileURL)
