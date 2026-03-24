@@ -95,8 +95,19 @@ final class AppState {
         addToRecentFiles(url)
     }
 
-    /// 既存プレビューを昇格し、新ファイルをプレビュータブとして開く（同一ファイルでも新タブ追加）
+    /// 既存プレビューを昇格し、新ファイルをプレビュータブとして開く
     func openInNewTab(_ url: URL) {
+        // 重複チェック: 既に開いていたらアクティブ化+ピン留め
+        if let existing = openTabs.first(where: { $0.url.path == url.path }) {
+            activeTabID = existing.id
+            pinnedTabIDs.insert(existing.id)
+            if previewTabID == existing.id { previewTabID = nil }
+            selectedFileURL = url
+            BookmarkManager.saveSelectedFile(url)
+            addToRecentFiles(url)
+            return
+        }
+
         // 既存プレビュータブをピン留めに昇格
         if let previewID = previewTabID {
             pinnedTabIDs.insert(previewID)
@@ -170,6 +181,28 @@ final class AppState {
         activeTabID = id
         selectedFileURL = tab.url
         BookmarkManager.saveSelectedFile(tab.url)
+    }
+
+    func unpinTab(_ id: UUID) {
+        pinnedTabIDs.remove(id)
+        if previewTabID == nil {
+            previewTabID = id
+        }
+    }
+
+    func closeOtherTabs(_ keepID: UUID) {
+        let toClose = openTabs.filter { $0.id != keepID }.map(\.id)
+        for id in toClose {
+            closeTab(id)
+        }
+    }
+
+    func closeTabsToRight(_ id: UUID) {
+        guard let index = openTabs.firstIndex(where: { $0.id == id }) else { return }
+        let toClose = openTabs[(index + 1)...].map(\.id)
+        for tabID in toClose {
+            closeTab(tabID)
+        }
     }
 
     private func addToRecentFiles(_ url: URL) {

@@ -8,6 +8,8 @@ struct TabBarView: View {
     let isDirty: (TabItem) -> Bool
     var isPreviewTab: (TabItem) -> Bool = { _ in false }
     var onPin: (TabItem) -> Void = { _ in }
+    var onCloseOthers: (TabItem) -> Void = { _ in }
+    var onCloseToRight: (TabItem) -> Void = { _ in }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -21,7 +23,9 @@ struct TabBarView: View {
                             isPreview: isPreviewTab(tab),
                             onSelect: { onSelect(tab) },
                             onClose: { onClose(tab) },
-                            onPin: { onPin(tab) }
+                            onPin: { onPin(tab) },
+                            onCloseOthers: { onCloseOthers(tab) },
+                            onCloseToRight: { onCloseToRight(tab) }
                         )
                     }
                 }
@@ -43,6 +47,8 @@ private struct TabItemView: View {
     let onSelect: () -> Void
     let onClose: () -> Void
     let onPin: () -> Void
+    let onCloseOthers: () -> Void
+    let onCloseToRight: () -> Void
 
     @State private var isHovered = false
 
@@ -58,18 +64,26 @@ private struct TabItemView: View {
                 .italic(isPreview)
                 .lineLimit(1)
 
-            Button {
-                onClose()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.secondary)
+            if isPreview && !isHovered && !isActive {
+                Circle()
+                    .fill(Color.secondary.opacity(0.4))
+                    .frame(width: 5, height: 5)
                     .frame(width: 14, height: 14)
-                    .contentShape(Rectangle())
+            } else {
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 14, height: 14)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .opacity(isHovered || isActive ? 1 : 0)
             }
-            .buttonStyle(.plain)
-            .opacity(isHovered || isActive ? 1 : 0)
         }
+        .opacity(isPreview && !isActive ? 0.6 : 1.0)
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .frame(height: 28)
@@ -88,6 +102,16 @@ private struct TabItemView: View {
         }
         .onHover { hovering in
             isHovered = hovering
+        }
+        .help(isPreview ? "プレビュータブ — ダブルクリックでピン留め" : "")
+        .contextMenu {
+            if isPreview {
+                Button("ピン留め") { onPin() }
+            }
+            Button("タブを閉じる") { onClose() }
+            Divider()
+            Button("他のタブを閉じる") { onCloseOthers() }
+            Button("右側のタブを閉じる") { onCloseToRight() }
         }
     }
 }

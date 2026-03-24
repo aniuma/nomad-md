@@ -177,7 +177,19 @@ struct ContentView: View {
                         && editorVM.isDirty
                 },
                 isPreviewTab: { tab in appState.isPreviewTab(tab.id) },
-                onPin: { tab in appState.pinTab(tab.id) }
+                onPin: { tab in appState.pinTab(tab.id) },
+                onCloseOthers: { tab in
+                    appState.closeOtherTabs(tab.id)
+                    if let url = appState.activeTabURL {
+                        previewVM.loadFile(at: url)
+                    }
+                },
+                onCloseToRight: { tab in
+                    appState.closeTabsToRight(tab.id)
+                    if let url = appState.activeTabURL {
+                        previewVM.loadFile(at: url)
+                    }
+                }
             )
         }
     }
