@@ -415,7 +415,7 @@ enum ExportService {
         break-after: avoid;
     }
 
-    pre, table, img, .callout, .oembed-youtube-pdf {
+    pre, table, blockquote, img, .callout, .oembed-youtube-pdf {
         page-break-inside: avoid;
         break-inside: avoid;
     }
@@ -426,10 +426,11 @@ enum ExportService {
     }
 
     @media print {
-        body { -webkit-print-color-adjust: exact; }
-        h1, h2, h3, h4, h5, h6 { break-after: avoid; }
-        pre, table, img, blockquote, .callout { break-inside: avoid; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        h1, h2, h3, h4, h5, h6 { break-after: avoid; page-break-after: avoid; }
+        pre, table, blockquote, img, .callout, .oembed-youtube-pdf { break-inside: avoid; page-break-inside: avoid; }
         p, li { orphans: 3; widows: 3; }
+        pre { word-wrap: break-word; }
     }
 
     /* Mermaid / KaTeX */
@@ -575,7 +576,7 @@ fileprivate final class PDFNavigationDelegate: NSObject, WKNavigationDelegate {
         printInfo.bottomMargin = margin + footerSpace
         printInfo.leftMargin = margin
         printInfo.rightMargin = margin
-        printInfo.horizontalPagination = .fit
+        printInfo.horizontalPagination = .automatic
         printInfo.verticalPagination = .automatic
         printInfo.isHorizontallyCentered = false
         printInfo.isVerticallyCentered = false
@@ -614,55 +615,112 @@ fileprivate final class PDFNavigationDelegate: NSObject, WKNavigationDelegate {
         onComplete()
     }
 
-    /// Fallback: existing createPDF + JS breakpoint splitting
+    /// Fallback: createPDF + JS breakpoint splitting (avoids cutting elements mid-way)
     private func generatePDFFallback(from webView: WKWebView) {
         let margin = settings.marginPreset.points
         let headerSpace: CGFloat = settings.showHeader ? 28 : 0
         let footerSpace: CGFloat = settings.showFooter ? 28 : 0
         let contentAreaHeight = settings.pageSize.height - margin * 2 - headerSpace - footerSpace
 
-        let config = WKPDFConfiguration()
-        webView.createPDF(configuration: config) { [self] result in
-            switch result {
-            case .success(let data):
-                do {
-                    guard let sourceDoc = PDFDocument(data: data),
-                          sourceDoc.pageCount > 0,
-                          let sourcePage = sourceDoc.page(at: 0) else {
-                        throw ExportError.invalidPDF
-                    }
-                    let sourceRect = sourcePage.bounds(for: .mediaBox)
-                    let scale = sourceRect.width / (settings.pageSize.width - settings.marginPreset.points * 2)
-                    let totalHeight = sourceRect.height / scale
+        // JS: collect top/bottom positions of block elements that should not be split
+        let js = """
+        (function() {
+            var elements = document.querySelectorAll('pre, table, blockquote, img, .callout, .oembed-youtube-pdf, h1, h2, h3, h4, h5, h6');
+            var blocks = [];
+            for (var i = 0; i < elements.length; i++) {
+                var rect = elements[i].getBoundingClientRect();
+                blocks.push({ top: rect.top + window.scrollY, bottom: rect.bottom + window.scrollY });
+            }
+            return JSON.stringify({ totalHeight: document.body.scrollHeight, blocks: blocks });
+        })()
+        """
 
-                    var pageBreaks: [CGFloat] = [0]
-                    var y: CGFloat = contentAreaHeight
-                    while y < totalHeight {
-                        pageBreaks.append(y)
-                        y += contentAreaHeight
-                    }
-                    pageBreaks.append(totalHeight)
+        webView.evaluateJavaScript(js) { [self] result, _ in
+            let avoidRanges: [(top: CGFloat, bottom: CGFloat)]
+            let totalHeightFromJS: CGFloat?
 
-                    let pdfDoc = try ExportService.splitIntoPages(
-                        sourcePDFData: data,
-                        pageBreaks: pageBreaks,
-                        settings: settings
-                    )
-                    ExportService.addHeaderFooter(to: pdfDoc, settings: settings, fileName: fileName)
-                    pdfDoc.write(to: saveURL)
-                } catch {
+            if let jsonString = result as? String,
+               let jsonData = jsonString.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+               let blocks = json["blocks"] as? [[String: Double]] {
+                avoidRanges = blocks.map { (top: CGFloat($0["top"] ?? 0), bottom: CGFloat($0["bottom"] ?? 0)) }
+                totalHeightFromJS = (json["totalHeight"] as? Double).map { CGFloat($0) }
+            } else {
+                avoidRanges = []
+                totalHeightFromJS = nil
+            }
+
+            let config = WKPDFConfiguration()
+            webView.createPDF(configuration: config) { [self] pdfResult in
+                switch pdfResult {
+                case .success(let data):
+                    do {
+                        guard let sourceDoc = PDFDocument(data: data),
+                              sourceDoc.pageCount > 0,
+                              let sourcePage = sourceDoc.page(at: 0) else {
+                            throw ExportError.invalidPDF
+                        }
+                        let sourceRect = sourcePage.bounds(for: .mediaBox)
+                        let scale = sourceRect.width / (settings.pageSize.width - settings.marginPreset.points * 2)
+                        let totalHeight = totalHeightFromJS ?? sourceRect.height / scale
+
+                        let pageBreaks = Self.calculatePageBreaks(
+                            totalHeight: totalHeight,
+                            pageHeight: contentAreaHeight,
+                            avoidRanges: avoidRanges
+                        )
+
+                        let pdfDoc = try ExportService.splitIntoPages(
+                            sourcePDFData: data,
+                            pageBreaks: pageBreaks,
+                            settings: settings
+                        )
+                        ExportService.addHeaderFooter(to: pdfDoc, settings: settings, fileName: fileName)
+                        pdfDoc.write(to: saveURL)
+                    } catch {
+                        let alert = NSAlert()
+                        alert.messageText = "PDFの生成に失敗しました"
+                        alert.informativeText = error.localizedDescription
+                        alert.runModal()
+                    }
+                case .failure(let error):
                     let alert = NSAlert()
                     alert.messageText = "PDFの生成に失敗しました"
                     alert.informativeText = error.localizedDescription
                     alert.runModal()
                 }
-            case .failure(let error):
-                let alert = NSAlert()
-                alert.messageText = "PDFの生成に失敗しました"
-                alert.informativeText = error.localizedDescription
-                alert.runModal()
+                onComplete()
             }
-            onComplete()
         }
+    }
+
+    /// Calculate page break positions avoiding splitting protected elements
+    private static func calculatePageBreaks(
+        totalHeight: CGFloat,
+        pageHeight: CGFloat,
+        avoidRanges: [(top: CGFloat, bottom: CGFloat)]
+    ) -> [CGFloat] {
+        var breaks: [CGFloat] = [0]
+        var y = pageHeight
+
+        while y < totalHeight {
+            // Check if this break point falls inside a protected element
+            var adjusted = y
+            for range in avoidRanges {
+                if adjusted > range.top && adjusted < range.bottom {
+                    // Move break to just before this element
+                    adjusted = range.top
+                    break
+                }
+            }
+            // Don't allow zero-height pages — advance at least half a page
+            if adjusted <= breaks.last! {
+                adjusted = breaks.last! + pageHeight * 0.5
+            }
+            breaks.append(adjusted)
+            y = adjusted + pageHeight
+        }
+        breaks.append(totalHeight)
+        return breaks
     }
 }
