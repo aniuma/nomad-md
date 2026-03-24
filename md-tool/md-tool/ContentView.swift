@@ -561,13 +561,19 @@ private struct NotificationModifier: ViewModifier {
                 )
             }
             .onReceive(NotificationCenter.default.publisher(for: .openFileByURL)) { notification in
-                guard let fileURL = notification.object as? URL else { return }
+                print("🟡 [ContentView] .openFileByURL received, object: \(String(describing: notification.object))")
+                guard let fileURL = notification.object as? URL else {
+                    print("🟡 [ContentView]   ❌ object is not URL, ignoring")
+                    return
+                }
+                print("🟡 [ContentView]   opening: \(fileURL.lastPathComponent)")
                 initSidebarVM()
                 let parentFolder = fileURL.deletingLastPathComponent()
                 if !appState.registeredFolderURLs.contains(where: { parentFolder.path.hasPrefix($0.path) }) {
                     sidebarVM?.addFolderByURL(parentFolder)
                 }
                 selectFile(fileURL)
+                print("🟡 [ContentView]   selectFile done, activeTab: \(String(describing: appState.activeTabURL?.lastPathComponent))")
             }
             .onReceive(NotificationCenter.default.publisher(for: .appearanceChanged)) { _ in
                 appearanceMode = UserDefaults.standard.string(forKey: "appearanceMode") ?? "system"

@@ -6,29 +6,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var isUIReady = false
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        // 既存ウィンドウを前面に出す
-        if let window = NSApp.windows.first(where: { $0.isVisible }) {
-            window.makeKeyAndOrderFront(nil)
-        }
+        print("🔵 [AppDelegate] application(_:open:) called with \(urls.count) URLs")
+        for u in urls { print("🔵 [AppDelegate]   URL: \(u)") }
         NSApp.activate(ignoringOtherApps: true)
 
         for url in urls {
-            guard url.isFileURL else { continue }
+            guard url.isFileURL else { print("🔵 [AppDelegate]   skipped (not file URL)"); continue }
             let fm = FileManager.default
             guard fm.fileExists(atPath: url.path) else { continue }
 
             if isUIReady {
+                print("🔵 [AppDelegate]   delivering immediately: \(url.lastPathComponent)")
                 deliverURL(url)
             } else {
+                print("🔵 [AppDelegate]   buffered (UI not ready): \(url.lastPathComponent)")
                 pendingURLs.append(url)
             }
         }
     }
 
-    /// 新規ウィンドウ作成を抑制（Cmd+Nやメニューからの「新規ウィンドウ」を無効化）
+    /// Dockアイコンクリック時に既存ウィンドウを前面に出す
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if flag {
-            // 既にウィンドウがあればそれを前面に
             NSApp.windows.first { $0.isVisible }?.makeKeyAndOrderFront(nil)
             return false
         }
@@ -36,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func flushPendingURLs() {
+        print("🔵 [AppDelegate] flushPendingURLs called, \(pendingURLs.count) pending")
         isUIReady = true
         for url in pendingURLs {
             deliverURL(url)
@@ -48,8 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
 
         if isDirectory.boolValue {
+            print("🔵 [AppDelegate] posting .openFolderByURL: \(url.lastPathComponent)")
             NotificationCenter.default.post(name: .openFolderByURL, object: url)
         } else {
+            print("🔵 [AppDelegate] posting .openFileByURL: \(url.lastPathComponent)")
             NotificationCenter.default.post(name: .openFileByURL, object: url)
         }
     }
@@ -60,13 +62,12 @@ struct NomadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
+        Window("Nomad", id: "main") {
             ContentView()
                 .onOpenURL { url in
                     handleURLScheme(url)
                 }
         }
-        .handlesExternalEvents(matching: ["*"])
         .windowStyle(.automatic)
         .defaultSize(width: 1000, height: 700)
         .windowResizability(.contentMinSize)
@@ -156,6 +157,7 @@ struct NomadApp: App {
 
 extension NomadApp {
     func handleURLScheme(_ url: URL) {
+        print("🟢 [onOpenURL] handleURLScheme called: \(url)")
         // file:// scheme — Finder double-click or "Open With"
         if url.isFileURL {
             let fileManager = FileManager.default
