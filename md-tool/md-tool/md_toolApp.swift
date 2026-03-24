@@ -61,6 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct NomadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    init() {
+        // Start HTTP server early so port is ready before first PreviewView render
+        LocalHTTPServer.shared.start()
+    }
+
     var body: some Scene {
         Window("Nomad", id: "main") {
             ContentView()
