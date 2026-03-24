@@ -63,14 +63,14 @@ struct AISettingsView: View {
                     switch rowState {
                     case .cached:
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(NomadColors.success)
                             .font(.caption)
                     case .completed:
                         HStack(spacing: 2) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(NomadColors.success)
                             Text("完了")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(NomadColors.success)
                         }
                         .font(.caption)
                     default:
@@ -115,14 +115,14 @@ struct AISettingsView: View {
             case .completed:
                 Text("使用可能")
                     .font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(NomadColors.success)
             case .cached:
                 Button("削除") {
                     modelToDelete = model
                     showDeleteConfirm = true
                 }
                 .font(.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(NomadColors.error)
             case .notCached:
                 Button("ダウンロード") {
                     Task { await modelManager.downloadModel(model) }

@@ -187,7 +187,7 @@ struct ContentView: View {
         if let warning = previewVM.fileSizeWarning, warning != .tooLarge {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(NomadColors.warning)
                 Text(warning == .veryLarge ? "大きなファイルです（10MB超）。表示に時間がかかる場合があります。" : "大きなファイルです（1MB超）。")
                     .font(.callout)
                 Spacer()

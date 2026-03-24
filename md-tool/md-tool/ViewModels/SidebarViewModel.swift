@@ -36,6 +36,12 @@ final class SidebarViewModel {
         }
     }
 
+    deinit {
+        if let observer = exclusionObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
     func addFolder() {
         addFileOrFolder(onFileSelected: nil)
     }

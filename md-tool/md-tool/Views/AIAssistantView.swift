@@ -90,7 +90,7 @@ struct AIAssistantView: View {
                                 if !viewModel.llmService.canLoadModel(model) {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.caption2)
-                                        .foregroundStyle(.yellow)
+                                        .foregroundStyle(NomadColors.warning)
                                 }
                             }
                         }
@@ -102,7 +102,7 @@ struct AIAssistantView: View {
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.caption2)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(NomadColors.error)
             }
         }
         .padding(12)

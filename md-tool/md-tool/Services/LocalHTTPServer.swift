@@ -10,8 +10,16 @@ final class LocalHTTPServer {
 
     private(set) var port: UInt16 = 0
     private var listener: NWListener?
-    private var currentHTML: String = ""
-    private var baseDirectoryURL: URL?
+    private let contentLock = NSLock()
+    private var _currentHTML: String = ""
+    private var _baseDirectoryURL: URL?
+
+    private var currentHTML: String {
+        contentLock.withLock { _currentHTML }
+    }
+    private var baseDirectoryURL: URL? {
+        contentLock.withLock { _baseDirectoryURL }
+    }
 
     var previewURL: URL? {
         guard port > 0 else { return nil }
@@ -47,8 +55,10 @@ final class LocalHTTPServer {
     }
 
     func updateContent(html: String, baseDirectory: URL?) {
-        currentHTML = html
-        baseDirectoryURL = baseDirectory
+        contentLock.withLock {
+            _currentHTML = html
+            _baseDirectoryURL = baseDirectory
+        }
     }
 
     // MARK: - Connection handling
@@ -104,13 +114,21 @@ final class LocalHTTPServer {
     }
 
     private func serveFile(path: String, connection: NWConnection) {
-        // Resolve relative to base directory
+        guard let base = baseDirectoryURL else {
+            serve404(connection: connection)
+            return
+        }
+
+        // Resolve path: absolute paths as-is, relative paths against base
         let fileURL: URL
         if path.hasPrefix("/") {
-            fileURL = URL(fileURLWithPath: path)
-        } else if let base = baseDirectoryURL {
-            fileURL = base.appendingPathComponent(path).standardized
+            fileURL = URL(fileURLWithPath: path).standardizedFileURL
         } else {
+            fileURL = base.appendingPathComponent(path).standardizedFileURL
+        }
+
+        // Verify resolved path stays within base directory (prevents path traversal)
+        guard fileURL.path.hasPrefix(base.standardizedFileURL.path) else {
             serve404(connection: connection)
             return
         }

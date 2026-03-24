@@ -96,10 +96,10 @@ struct SearchView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(NomadColors.error)
                     Text(regexError)
                         .font(.system(size: 11))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(NomadColors.error)
                     Spacer()
                 }
                 .padding(.horizontal, 12)
@@ -148,7 +148,7 @@ struct SearchView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(NomadColors.success)
                     Text(replaceMessage)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)

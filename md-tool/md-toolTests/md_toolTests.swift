@@ -313,3 +313,145 @@ struct OEmbedServiceTests {
         #expect(html.contains("youtube-nocookie.com/embed/dQw4w9WgXcQ"))
     }
 }
+
+// MARK: - Heading ID Japanese Tests
+
+struct HeadingIdTests {
+    let renderer = MarkdownRenderer()
+
+    @Test func japaneseHeadingId() {
+        let html = renderer.render("## 日本語の見出し")
+        #expect(html.contains("id=\"日本語の見出し\""))
+    }
+
+    @Test func mixedJapaneseEnglishHeadingId() {
+        let html = renderer.render("## SwiftUIの使い方")
+        #expect(html.contains("id=\"swiftuiの使い方\""))
+    }
+
+    @Test func katakanaHeadingId() {
+        let html = renderer.render("## カタカナテスト")
+        #expect(html.contains("id=\"カタカナテスト\""))
+    }
+
+    @Test func duplicateJapaneseHeadingIds() {
+        let html = renderer.render("## 概要\n## 概要")
+        #expect(html.contains("id=\"概要\""))
+        #expect(html.contains("id=\"概要-1\""))
+    }
+
+    @Test func tocLinkWithJapaneseHeading() {
+        let html = renderer.render("# タイトル\n## セクション1\n## セクション2")
+        #expect(html.contains("href=\"#タイトル\""))
+        #expect(html.contains("href=\"#セクション1\""))
+        #expect(html.contains("href=\"#セクション2\""))
+    }
+}
+
+// MARK: - ReviewService Tests
+
+struct ReviewServiceTests {
+    @Test func parseApprovedReview() {
+        let md = "## Section\n<!-- nomad-review: approved by=user at=2026-03-09T15:00:00+09:00 -->"
+        let reviews = ReviewService.parseReviews(from: md)
+        #expect(reviews.count == 1)
+        #expect(reviews[0].status == .approved)
+        #expect(reviews[0].by == "user")
+    }
+
+    @Test func parseRejectedReview() {
+        let md = "<!-- nomad-review: rejected by=reviewer reason=needs-fix -->"
+        let reviews = ReviewService.parseReviews(from: md)
+        #expect(reviews.count == 1)
+        #expect(reviews[0].status == .rejected)
+        #expect(reviews[0].reason == "needs-fix")
+    }
+
+    @Test func parseMultipleReviews() {
+        let md = """
+        ## A
+        <!-- nomad-review: approved by=alice -->
+        ## B
+        <!-- nomad-review: rejected by=bob -->
+        """
+        let reviews = ReviewService.parseReviews(from: md)
+        #expect(reviews.count == 2)
+    }
+
+    @Test func noReviewComments() {
+        let md = "## Just a heading\nSome text"
+        let reviews = ReviewService.parseReviews(from: md)
+        #expect(reviews.isEmpty)
+    }
+
+    @Test func setReviewComment() {
+        let md = "## Section\nContent here"
+        let result = ReviewService.setReview(
+            in: md, afterHeadingContaining: "Section",
+            status: .approved, by: "tester"
+        )
+        #expect(result.contains("nomad-review: approved"))
+        #expect(result.contains("by=tester"))
+    }
+
+    @Test func removeReviewComment() {
+        let md = "## Section\n<!-- nomad-review: approved by=user -->\nContent"
+        let result = ReviewService.removeReview(in: md, afterHeadingContaining: "Section")
+        #expect(!result.contains("nomad-review"))
+        #expect(result.contains("Content"))
+    }
+
+    @Test func reviewBadgeHTML() {
+        let review = ReviewService.ReviewComment(
+            status: .approved, by: "user", at: nil, reason: nil, lineIndex: 0
+        )
+        let badge = ReviewService.renderReviewBadgeHTML(for: review)
+        #expect(badge.contains("review-approved"))
+        #expect(badge.contains("承認済み"))
+    }
+
+    @Test func reviewDisplayLabels() {
+        #expect(ReviewService.ReviewStatus.approved.displayLabel.contains("承認"))
+        #expect(ReviewService.ReviewStatus.rejected.displayLabel.contains("却下"))
+    }
+}
+
+// MARK: - LocalHTTPServer Path Traversal Tests
+
+struct LocalHTTPServerSecurityTests {
+    @Test func pathTraversalBlocked() {
+        // Verify that standardizedFileURL + hasPrefix check prevents traversal
+        let base = URL(fileURLWithPath: "/Users/test/Documents/project")
+        let maliciousPath = "../../etc/passwd"
+        let resolved = base.appendingPathComponent(maliciousPath).standardizedFileURL
+        #expect(!resolved.path.hasPrefix(base.standardizedFileURL.path))
+    }
+
+    @Test func validRelativePathAllowed() {
+        let base = URL(fileURLWithPath: "/Users/test/Documents/project")
+        let validPath = "images/photo.png"
+        let resolved = base.appendingPathComponent(validPath).standardizedFileURL
+        #expect(resolved.path.hasPrefix(base.standardizedFileURL.path))
+    }
+
+    @Test func absolutePathOutsideBaseBlocked() {
+        let base = URL(fileURLWithPath: "/Users/test/Documents/project")
+        let absolutePath = "/etc/passwd"
+        let resolved = URL(fileURLWithPath: absolutePath).standardizedFileURL
+        #expect(!resolved.path.hasPrefix(base.standardizedFileURL.path))
+    }
+
+    @Test func absolutePathInsideBaseAllowed() {
+        let base = URL(fileURLWithPath: "/Users/test/Documents/project")
+        let absolutePath = "/Users/test/Documents/project/images/photo.png"
+        let resolved = URL(fileURLWithPath: absolutePath).standardizedFileURL
+        #expect(resolved.path.hasPrefix(base.standardizedFileURL.path))
+    }
+
+    @Test func dotDotInMiddleOfPathBlocked() {
+        let base = URL(fileURLWithPath: "/Users/test/Documents/project")
+        let sneakyPath = "images/../../../etc/passwd"
+        let resolved = base.appendingPathComponent(sneakyPath).standardizedFileURL
+        #expect(!resolved.path.hasPrefix(base.standardizedFileURL.path))
+    }
+}

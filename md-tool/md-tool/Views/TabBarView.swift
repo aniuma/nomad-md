@@ -73,7 +73,7 @@ private struct TabItemView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .frame(height: 28)
-        .background(isHovered && !isActive ? Color(nsColor: .controlAccentColor).opacity(0.05) : Color.clear)
+        .background(isHovered && !isActive ? Color.accentColor.opacity(0.05) : Color.clear)
         .modifier(ActiveTabGlassModifier(isActive: isActive))
         .overlay(alignment: .trailing) {
             Divider()
