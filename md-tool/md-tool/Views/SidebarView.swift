@@ -11,6 +11,8 @@ struct SidebarView: View {
     @State private var folderToRemove: URL?
     @State private var isDropTargeted = false
     @State private var isTagSectionExpanded = true
+    @State private var expandedFolders: Set<URL> = []
+    @State private var initializedFolders = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,7 +38,7 @@ struct SidebarView: View {
                     }
                 )) {
                     ForEach(viewModel.rootNodes, id: \.url) { root in
-                        Section {
+                        Section(isExpanded: folderExpandedBinding(for: root.url)) {
                             if let children = root.children {
                                 OutlineGroup(children, id: \.url, children: \.children) { node in
                                     let isFiltered = viewModel.filteredFileURLs != nil
@@ -176,6 +178,18 @@ struct SidebarView: View {
             }
             .padding(8)
         }
+        .onAppear {
+            if !initializedFolders {
+                expandedFolders = Set(viewModel.rootNodes.map(\.url))
+                initializedFolders = true
+            }
+        }
+        .onChange(of: viewModel.rootNodes.map(\.url)) { _, newURLs in
+            // 新規追加フォルダを自動展開
+            for url in newURLs where !expandedFolders.contains(url) {
+                expandedFolders.insert(url)
+            }
+        }
         .overlay {
             if isDropTargeted {
                 RoundedRectangle(cornerRadius: 8)
@@ -206,6 +220,19 @@ struct SidebarView: View {
                 Text("「\(url.lastPathComponent)」をサイドバーから削除しますか？\nファイルは削除されません。")
             }
         }
+    }
+
+    private func folderExpandedBinding(for url: URL) -> Binding<Bool> {
+        Binding(
+            get: { expandedFolders.contains(url) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedFolders.insert(url)
+                } else {
+                    expandedFolders.remove(url)
+                }
+            }
+        )
     }
 
     /// ディレクトリ内のREADME.mdまたは最初のMarkdownファイルを探す
