@@ -82,7 +82,7 @@ final class LocalHTTPServer {
         if path == "/preview" || path == "/preview/" {
             serveHTML(connection: connection)
         } else if path.hasPrefix("/file/") {
-            let filePath = String(path.dropFirst(6)).removingPercentEncoding ?? ""
+            let filePath = String(path.dropFirst(5)).removingPercentEncoding ?? ""
             serveFile(path: filePath, connection: connection)
         } else {
             serve404(connection: connection)
@@ -90,7 +90,8 @@ final class LocalHTTPServer {
     }
 
     private func serveHTML(connection: NWConnection) {
-        let body = currentHTML.data(using: .utf8) ?? Data()
+        let html = rewriteFileURLs(in: currentHTML)
+        let body = html.data(using: .utf8) ?? Data()
         let header = """
         HTTP/1.1 200 OK\r\n\
         Content-Type: text/html; charset=utf-8\r\n\
@@ -148,6 +149,26 @@ final class LocalHTTPServer {
         connection.send(content: packet, completion: .contentProcessed { _ in
             connection.cancel()
         })
+    }
+
+    /// Rewrite file:// URLs to localhost server URLs at serve time.
+    /// This ensures rewriting always works, even on first load when
+    /// the port wasn't available during HTML template wrapping.
+    private func rewriteFileURLs(in html: String) -> String {
+        guard port > 0 else { return html }
+        let pattern = #"(src\s*=\s*")(file://[^"]+)(")"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return html }
+        let mutable = NSMutableString(string: html)
+        let matches = regex.matches(in: html, range: NSRange(location: 0, length: mutable.length))
+        for match in matches.reversed() {
+            let fileURLRange = match.range(at: 2)
+            let fileURLString = (html as NSString).substring(with: fileURLRange)
+            if let fileURL = URL(string: fileURLString) {
+                let serverPath = "http://localhost:\(port)/file\(fileURL.path)"
+                mutable.replaceCharacters(in: fileURLRange, with: serverPath)
+            }
+        }
+        return mutable as String
     }
 
     private func mimeType(for ext: String) -> String {

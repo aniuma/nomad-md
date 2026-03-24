@@ -29,10 +29,10 @@ struct PreviewView: NSViewRepresentable {
         context.coordinator.baseURL = baseURL
         context.coordinator.onInternalLink = onInternalLink
         context.coordinator.onToggleCheckbox = onToggleCheckbox
-        let fullHTML = wrapInHTMLTemplate(htmlContent)
 
         let server = LocalHTTPServer.shared
         server.start()
+        let fullHTML = wrapInHTMLTemplate(htmlContent)
         server.updateContent(html: fullHTML, baseDirectory: baseURL)
 
         if let serverURL = server.previewURL {
