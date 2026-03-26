@@ -16,6 +16,7 @@ struct PreviewView: NSViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(context.coordinator, name: "copySection")
         config.userContentController.add(context.coordinator, name: "toggleCheckbox")
+        config.userContentController.add(context.coordinator, name: "internalLink")
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
@@ -239,6 +240,25 @@ struct PreviewView: NSViewRepresentable {
         };
     })();
 
+    // Internal markdown link interception
+    (function() {
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('a');
+            if (!link) return;
+            var href = link.getAttribute('href');
+            if (!href) return;
+            if (href.startsWith('http://') || href.startsWith('https://') ||
+                href.startsWith('#') || href.startsWith('mailto:')) return;
+            var cleanHref = href.split('#')[0];
+            var ext = cleanHref.split('.').pop().toLowerCase();
+            if (ext === 'md' || ext === 'markdown') {
+                e.preventDefault();
+                e.stopPropagation();
+                window.webkit.messageHandlers.internalLink.postMessage(href);
+            }
+        });
+    })();
+
     // TOC scroll tracking
     (function() {
         var headings = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
@@ -320,7 +340,27 @@ struct PreviewView: NSViewRepresentable {
                     NSPasteboard.general.setString(text, forType: .string)
                 } else if message.name == "toggleCheckbox", let line = message.body as? Int {
                     onToggleCheckbox?(line)
+                } else if message.name == "internalLink", let href = message.body as? String {
+                    handleInternalLink(href: href)
                 }
+            }
+        }
+
+        private func handleInternalLink(href: String) {
+            guard let baseURL = baseURL else { return }
+            let cleanHref = href.components(separatedBy: "#").first ?? href
+            let ext = (cleanHref as NSString).pathExtension.lowercased()
+            guard ext == "md" || ext == "markdown" else { return }
+
+            let resolvedURL: URL
+            if cleanHref.hasPrefix("/") {
+                resolvedURL = URL(fileURLWithPath: cleanHref).standardized
+            } else {
+                resolvedURL = baseURL.appendingPathComponent(cleanHref).standardized
+            }
+
+            if FileManager.default.fileExists(atPath: resolvedURL.path) {
+                onInternalLink?(resolvedURL)
             }
         }
 
@@ -331,8 +371,18 @@ struct PreviewView: NSViewRepresentable {
                 return
             }
 
-            // Allow localhost server navigation (for LocalHTTPServer)
+            // Localhost navigation: check for .md links before allowing
             if url.host == "localhost" || url.host == "127.0.0.1" {
+                let pathExt = url.pathExtension.lowercased()
+                if (pathExt == "md" || pathExt == "markdown"), let baseURL = baseURL {
+                    let relativePath = String(url.path.dropFirst())
+                    let resolvedURL = baseURL.appendingPathComponent(relativePath).standardized
+                    if FileManager.default.fileExists(atPath: resolvedURL.path) {
+                        onInternalLink?(resolvedURL)
+                        decisionHandler(.cancel)
+                        return
+                    }
+                }
                 decisionHandler(.allow)
                 return
             }
