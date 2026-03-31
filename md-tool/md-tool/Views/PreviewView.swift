@@ -179,9 +179,34 @@ struct PreviewView: NSViewRepresentable {
     // Section collapse toggle
     (function() {
         var toggleSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><polygon points="5,7 1,3 9,3"/></svg>';
-        var headings = Array.from(document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6'));
+        var headings = Array.from(document.querySelectorAll('.markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6'));
+
+        function toggleSection(h, btn) {
+            var isCollapsed = btn.classList.contains('collapsed');
+            var hLevel = parseInt(h.tagName.charAt(1));
+            var el = h.nextElementSibling;
+            while (el) {
+                if (/^H[1-6]$/.test(el.tagName) && parseInt(el.tagName.charAt(1)) <= hLevel) break;
+                if (isCollapsed) {
+                    el.classList.remove('section-content-collapsed');
+                } else {
+                    el.classList.add('section-content-collapsed');
+                }
+                el = el.nextElementSibling;
+            }
+            if (isCollapsed) {
+                btn.classList.remove('collapsed');
+                btn.setAttribute('aria-expanded', 'true');
+                btn.title = 'セクションを折りたたむ';
+            } else {
+                btn.classList.add('collapsed');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.title = 'セクションを展開する';
+            }
+        }
 
         headings.forEach(function(h) {
+            h.classList.add('section-heading');
             var btn = document.createElement('button');
             btn.className = 'section-toggle-btn';
             btn.innerHTML = toggleSvg;
@@ -190,29 +215,16 @@ struct PreviewView: NSViewRepresentable {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                var isCollapsed = btn.classList.contains('collapsed');
-                var hLevel = parseInt(h.tagName.charAt(1));
-                var el = h.nextElementSibling;
-                while (el) {
-                    if (/^H[1-6]$/.test(el.tagName) && parseInt(el.tagName.charAt(1)) <= hLevel) break;
-                    if (isCollapsed) {
-                        el.classList.remove('section-content-collapsed');
-                    } else {
-                        el.classList.add('section-content-collapsed');
-                    }
-                    el = el.nextElementSibling;
-                }
-                if (isCollapsed) {
-                    btn.classList.remove('collapsed');
-                    btn.setAttribute('aria-expanded', 'true');
-                    btn.title = 'セクションを折りたたむ';
-                } else {
-                    btn.classList.add('collapsed');
-                    btn.setAttribute('aria-expanded', 'false');
-                    btn.title = 'セクションを展開する';
-                }
+                toggleSection(h, btn);
             });
             h.insertBefore(btn, h.firstChild);
+            // Heading text click also toggles
+            h.addEventListener('click', function(e) {
+                if (e.target === btn || btn.contains(e.target)) return;
+                if (e.target.tagName === 'A') return;
+                e.preventDefault();
+                toggleSection(h, btn);
+            });
         });
 
         // Expose expand function for TOC links

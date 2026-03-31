@@ -509,7 +509,13 @@ enum HTMLTemplateProvider {
         color: var(--link);
     }
 
-    /* Section collapse toggle button */
+    /* Section collapse: heading becomes flex container with toggle arrow */
+    .section-heading {
+        display: flex;
+        align-items: baseline;
+        cursor: pointer;
+    }
+
     .section-toggle-btn {
         opacity: 0;
         transition: opacity 0.2s, transform 0.2s;
@@ -517,16 +523,17 @@ enum HTMLTemplateProvider {
         background: none;
         border: none;
         padding: 0;
-        margin-right: 4px;
-        vertical-align: middle;
+        margin-right: 6px;
         line-height: 1;
-        display: inline-flex;
+        display: flex;
         align-items: center;
+        justify-content: center;
         color: #D4A574;
-        font-size: 0.6em;
         width: 16px;
+        min-width: 16px;
         height: 16px;
         flex-shrink: 0;
+        align-self: center;
     }
 
     .section-toggle-btn svg {
@@ -537,12 +544,7 @@ enum HTMLTemplateProvider {
         opacity: 0.7;
     }
 
-    h1:hover .section-toggle-btn,
-    h2:hover .section-toggle-btn,
-    h3:hover .section-toggle-btn,
-    h4:hover .section-toggle-btn,
-    h5:hover .section-toggle-btn,
-    h6:hover .section-toggle-btn {
+    .section-heading:hover .section-toggle-btn {
         opacity: 1;
     }
 
@@ -552,6 +554,15 @@ enum HTMLTemplateProvider {
 
     .section-toggle-btn.collapsed svg {
         transform: rotate(-90deg);
+    }
+
+    /* Indent content under headings to align with heading text (past the arrow) */
+    h2.section-heading ~ *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.section-heading),
+    h3.section-heading ~ *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.section-heading),
+    h4.section-heading ~ *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.section-heading),
+    h5.section-heading ~ *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.section-heading),
+    h6.section-heading ~ *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(.section-heading) {
+        margin-left: 22px;
     }
 
     .section-content-collapsed {
