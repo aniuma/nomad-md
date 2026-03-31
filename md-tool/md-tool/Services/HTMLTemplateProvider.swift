@@ -185,6 +185,9 @@ enum HTMLTemplateProvider {
         max-width: none;
         margin: 0;
         padding: 48px 56px;
+        font-feature-settings: "palt";
+        font-kerning: normal;
+        text-align: justify;
     }
 
     h1, h2, h3, h4, h5, h6 {
